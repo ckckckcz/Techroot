@@ -1,3 +1,4 @@
+"use client"
 import React, { createContext, useContext, useState, useEffect, ReactNode } from 'react';
 
 interface User {
@@ -97,7 +98,7 @@ export const UserProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     if (lastActiveDate !== today) {
       const yesterday = new Date();
       yesterday.setDate(yesterday.getDate() - 1);
-      
+
       if (lastActiveDate === yesterday.toDateString()) {
         setStreak(prev => prev + 1);
       } else if (lastActiveDate !== null) {
@@ -112,12 +113,12 @@ export const UserProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
   const login = async (email: string, password: string): Promise<boolean> => {
     // Simulate API call
     await new Promise(resolve => setTimeout(resolve, 500));
-    
+
     // For demo, any valid email/password combo works
     if (email && password.length >= 4) {
       const savedUsers = JSON.parse(localStorage.getItem('codelearn_users') || '[]');
       const existingUser = savedUsers.find((u: any) => u.email === email);
-      
+
       if (existingUser) {
         setUser(existingUser);
         return true;
@@ -130,18 +131,18 @@ export const UserProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
   const register = async (name: string, email: string, password: string): Promise<boolean> => {
     // Simulate API call
     await new Promise(resolve => setTimeout(resolve, 500));
-    
+
     if (name && email && password.length >= 4) {
       const newUser: User = {
         id: Date.now().toString(),
         email,
         name,
       };
-      
+
       const savedUsers = JSON.parse(localStorage.getItem('codelearn_users') || '[]');
       savedUsers.push(newUser);
       localStorage.setItem('codelearn_users', JSON.stringify(savedUsers));
-      
+
       setUser(newUser);
       setXP(0);
       setStreak(1);
@@ -151,7 +152,7 @@ export const UserProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
         currentPath: null,
         currentModule: null,
       });
-      
+
       return true;
     }
     return false;

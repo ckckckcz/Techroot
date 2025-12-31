@@ -22,7 +22,7 @@ export function Header() {
 
     return (
         <header className="sticky top-0 z-50 w-full border-b border-border bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
-            <div className="container flex h-16 items-center justify-between">
+            <div className="container max-w-7xl mx-auto flex h-16 items-center justify-between px-4">
                 <Link href="/" className="flex items-center gap-2 font-semibold text-lg">
                     <Code2 className="h-6 w-6" />
                     <span className="hidden sm:inline">CodeLearn</span>
@@ -106,7 +106,7 @@ export function Header() {
             {/* Mobile Menu */}
             {mobileMenuOpen && (
                 <div className="md:hidden border-t border-border bg-background">
-                    <nav className="container py-4 flex flex-col gap-4">
+                    <nav className="container max-w-7xl mx-auto py-4 px-4 flex flex-col gap-4">
                         <Link
                             href="/paths"
                             onClick={() => setMobileMenuOpen(false)}

@@ -1,129 +1,151 @@
-"use client";
+import Link from 'next/link';
+import { Button } from '@/components/ui/button';
+import { PathCard } from '@/components/PathCard';
+import { CodePlayground } from '@/components/CodePlayground';
+import { learningPaths } from '@/data/learningPaths';
+import { Header } from '@/components/layout/Header';
+import { ArrowRight, Code2, Zap, Target, Sparkles } from 'lucide-react';
 
-import { useEffect } from "react";
-import Link from "next/link";
-import { useRouter } from "next/navigation";
-import { Button } from "@/components/ui/button";
-import { Header } from "@/components/layout/Header";
-import { StatsDisplay } from "@/components/StatsDisplay";
-import { BadgeDisplay } from "@/components/BadgeDisplay";
-import { PathCard } from "@/components/PathCard";
-
-import { useUser } from "@/context/UserContext";
-import { learningPaths, getModuleById } from "@/data/learningPaths";
-
-import { ArrowRight, BookOpen } from "lucide-react";
-
-export default function DashboardPage() {
-  const { isAuthenticated, user, progress } = useUser();
-  const router = useRouter();
-
-  useEffect(() => {
-    if (!isAuthenticated) {
-      router.push("/login");
-    }
-  }, [isAuthenticated, router]);
-
-  if (!isAuthenticated) {
-    return null;
-  }
-
-  const getSuggestedModule = () => {
-    for (const path of learningPaths) {
-      for (const module of path.modules) {
-        const key = `${path.id}:${module.id}`;
-        if (!progress.completedModules.includes(key)) {
-          return { path, module };
-        }
-      }
-    }
-    return null;
-  };
-
-  const suggestion = getSuggestedModule();
-
-  const currentModule =
-    progress.currentPath && progress.currentModule
-      ? getModuleById(progress.currentPath, progress.currentModule)
-      : null;
-
+export default function Landing() {
   return (
     <div className="min-h-screen bg-background">
       <Header />
 
-      <div className="container py-8">
-        <div className="max-w-5xl mx-auto space-y-8">
-          <div>
-            <h1 className="text-3xl font-bold mb-2">
-              Welcome back, {user?.name}!
+      {/* Hero Section */}
+      <section className="py-20 lg:py-32">
+        <div className="container max-w-7xl mx-auto px-4">
+          <div className="max-w-3xl mx-auto text-center space-y-6">
+            <h1 className="text-4xl sm:text-5xl lg:text-6xl font-bold tracking-tight animate-fade-in">
+              Learn to code by
+              <br />
+              <span className="gradient-text">writing code</span>
             </h1>
-            <p className="text-muted-foreground">
-              Continue your learning journey and build your skills.
+            <p className="text-lg sm:text-xl text-muted-foreground max-w-2xl mx-auto animate-slide-up" style={{ animationDelay: '0.1s' }}>
+              Master programming through hands-on practice.  Write real code, get instant feedback, and track your progress.
             </p>
-          </div>
-
-          <StatsDisplay />
-
-          <div className="border border-border rounded-lg p-6 space-y-4">
-            <div className="flex items-center gap-2">
-              <BookOpen className="h-5 w-5 text-muted-foreground" />
-              <h2 className="font-semibold">
-                {currentModule ? "Continue Learning" : "Suggested For Today"}
-              </h2>
+            <div className="flex flex-col sm:flex-row items-center justify-center gap-4 pt-4 animate-slide-up" style={{ animationDelay: '0.2s' }}>
+              <Button size="xl" asChild>
+                <Link href="/register">
+                  Start Learning Free
+                  <ArrowRight className="h-5 w-5" />
+                </Link>
+              </Button>
+              <Button size="xl" variant="outline" asChild>
+                <Link href="/playground">Try Playground</Link>
+              </Button>
             </div>
-
-            {currentModule || suggestion ? (
-              <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
-                <div>
-                  <p className="font-medium">
-                    {currentModule?.title || suggestion?.module.title}
-                  </p>
-                  <p className="text-sm text-muted-foreground">
-                    {currentModule
-                      ? learningPaths.find(
-                        (p) => p.id === progress.currentPath
-                      )?.title
-                      : suggestion?.path.title}
-                  </p>
-                </div>
-
-                <Button asChild>
-                  <Link
-                    href={
-                      currentModule
-                        ? `/learn/${progress.currentPath}/${progress.currentModule}`
-                        : `/learn/${suggestion?.path.id}/${suggestion?.module.id}`
-                    }
-                  >
-                    {currentModule ? "Continue" : "Start"}
-                    <ArrowRight className="h-4 w-4" />
-                  </Link>
-                </Button>
-              </div>
-            ) : (
-              <div className="text-center py-4">
-                <p className="text-muted-foreground mb-4">
-                  You've completed all available modules.
-                </p>
-                <Button variant="outline" asChild>
-                  <Link href="/playground">Practice in Playground</Link>
-                </Button>
-              </div>
-            )}
           </div>
+        </div>
+      </section>
 
-          <BadgeDisplay />
+      {/* Features Section */}
+      <section className="py-20 border-t border-border">
+        <div className="container max-w-7xl mx-auto px-4">
+          <div className="grid md:grid-cols-3 gap-8 max-w-4xl mx-auto">
+            <div className="text-center space-y-3">
+              <div className="h-12 w-12 rounded-lg bg-secondary mx-auto flex items-center justify-center">
+                <Code2 className="h-6 w-6" />
+              </div>
+              <h3 className="font-semibold">Interactive Playground</h3>
+              <p className="text-sm text-muted-foreground">
+                Write and run JavaScript directly in your browser with instant feedback.
+              </p>
+            </div>
+            <div className="text-center space-y-3">
+              <div className="h-12 w-12 rounded-lg bg-secondary mx-auto flex items-center justify-center">
+                <Sparkles className="h-6 w-6" />
+              </div>
+              <h3 className="font-semibold">AI-Powered Hints</h3>
+              <p className="text-sm text-muted-foreground">
+                Get intelligent feedback and suggestions as you code.
+              </p>
+            </div>
+            <div className="text-center space-y-3">
+              <div className="h-12 w-12 rounded-lg bg-secondary mx-auto flex items-center justify-center">
+                <Target className="h-6 w-6" />
+              </div>
+              <h3 className="font-semibold">Track Progress</h3>
+              <p className="text-sm text-muted-foreground">
+                Earn XP, level up, and maintain streaks to stay motivated.
+              </p>
+            </div>
+          </div>
+        </div>
+      </section>
 
-          <div className="space-y-4">
-            <h2 className="font-semibold">Learning Paths</h2>
-            <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-4">
-              {learningPaths.map((path) => (
+      {/* Learning Paths Section */}
+      <section className="py-20 border-t border-border">
+        <div className="container max-w-7xl mx-auto px-4">
+          <div className="max-w-4xl mx-auto">
+            <div className="text-center mb-12">
+              <h2 className="text-3xl font-bold mb-4">Learning Paths</h2>
+              <p className="text-muted-foreground">
+                Structured courses to take you from beginner to confident coder.
+              </p>
+            </div>
+            <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
+              {learningPaths.map(path => (
                 <PathCard key={path.id} path={path} />
               ))}
             </div>
           </div>
         </div>
-      </div>
+      </section>
+
+      {/* Playground Preview Section */}
+      <section className="py-20 border-t border-border">
+        <div className="container max-w-7xl mx-auto px-4">
+          <div className="max-w-3xl mx-auto">
+            <div className="text-center mb-8">
+              <h2 className="text-3xl font-bold mb-4">Try It Now</h2>
+              <p className="text-muted-foreground">
+                Write your first line of code right here.
+              </p>
+            </div>
+            <CodePlayground
+              initialCode={`// Try writing some JavaScript! 
+const greeting = "Hello, World!";
+console.log(greeting);
+
+// Click "Run Code" to see the output`}
+              showAIFeedback={false}
+            />
+          </div>
+        </div>
+      </section>
+
+      {/* CTA Section */}
+      <section className="py-20 border-t border-border">
+        <div className="container max-w-7xl mx-auto px-4">
+          <div className="max-w-2xl mx-auto text-center space-y-6">
+            <h2 className="text-3xl font-bold">Ready to start coding?</h2>
+            <p className="text-muted-foreground">
+              Join thousands of learners mastering programming through practice.
+            </p>
+            <Button size="xl" asChild>
+              <Link href="/register">
+                Create Free Account
+                <ArrowRight className="h-5 w-5" />
+              </Link>
+            </Button>
+          </div>
+        </div>
+      </section>
+
+      {/* Footer */}
+      <footer className="py-8 border-t border-border">
+        <div className="container max-w-7xl mx-auto px-4">
+          <div className="flex flex-col sm:flex-row items-center justify-between gap-4">
+            <div className="flex items-center gap-2 text-muted-foreground">
+              <Code2 className="h-5 w-5" />
+              <span className="font-medium">CodeLearn</span>
+            </div>
+            <p className="text-sm text-muted-foreground">
+              © 2024 CodeLearn.  Learn by doing.
+            </p>
+          </div>
+        </div>
+      </footer>
     </div>
   );
 }

@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Link } from 'react-router-dom';
+import Link from "next/link";
 import { ChevronDown, ChevronRight, BookOpen, Play, FileQuestion, Check, Circle, Lock } from 'lucide-react';
 import { Module, Section, Lesson } from '@/data/learningPaths';
 import { Progress } from '@/components/ui/progress';
@@ -36,7 +36,7 @@ const SectionItem: React.FC<{
   isExpanded: boolean;
   onToggle: () => void;
 }> = ({ section, pathId, moduleId, currentLessonId, completedLessons, isExpanded, onToggle }) => {
-  const completedCount = section.lessons.filter(l => 
+  const completedCount = section.lessons.filter(l =>
     completedLessons.includes(`${moduleId}:${l.id}`)
   ).length;
   const isComplete = completedCount === section.lessons.length;
@@ -62,17 +62,17 @@ const SectionItem: React.FC<{
           </span>
         </div>
       </button>
-      
+
       {isExpanded && (
         <div className="pb-2">
           {section.lessons.map((lesson) => {
             const isCompleted = completedLessons.includes(`${moduleId}:${lesson.id}`);
             const isCurrent = lesson.id === currentLessonId;
-            
+
             return (
               <Link
                 key={lesson.id}
-                to={`/learn/${pathId}/${moduleId}/${lesson.id}`}
+                href={`/learn/${pathId}/${moduleId}/${lesson.id}`}
                 className={cn(
                   "flex items-start gap-3 px-4 py-2.5 text-sm transition-colors hover:bg-muted/50",
                   isCurrent && "bg-primary/10 border-l-2 border-primary",
