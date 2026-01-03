@@ -9,11 +9,20 @@ import progressRoute from '../src/routes/progress.route';
 
 const app: Application = express();
 
+// CORS Configuration - Allow all origins for development
+const corsOptions = {
+    origin: true, // Allow all origins
+    credentials: true,
+    methods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH', 'OPTIONS'],
+    allowedHeaders: ['Content-Type', 'Authorization', 'X-Requested-With', 'Accept', 'Origin'],
+};
+
 // Middleware
-app.use(cors({
-    origin: process.env.FRONTEND_URL || '*',
-    credentials: true
-}));
+app.use(cors(corsOptions));
+
+// Handle preflight requests
+app.options('*', cors(corsOptions));
+
 app.use(express.json());
 
 // Routes
