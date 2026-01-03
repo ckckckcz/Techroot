@@ -32,11 +32,10 @@ export default function ModuleDetail({
 }) {
     const { pathId, moduleId, lessonId: lessonIdArray } = use(params);
     const lessonId = lessonIdArray?.[0];
-    const { isAuthenticated, addXP, progress, completeModule } = useUser();
+    const { isAuthenticated, progress, completeLesson, completeModule, setCurrentPosition } = useUser();
     const { toast } = useToast();
     const router = useRouter();
     const [sidebarOpen, setSidebarOpen] = useState(true);
-    const [completedLessons, setCompletedLessons] = useState<string[]>([]);
 
     const path = pathId ? getPathById(pathId) : undefined;
     const module = pathId && moduleId ? getModuleById(pathId, moduleId) : undefined;
@@ -47,6 +46,9 @@ export default function ModuleDetail({
         ? getLessonById(pathId, moduleId, currentLessonId)
         : undefined;
 
+    // Get completed lessons from context
+    const completedLessons = progress.completedLessons;
+
     // Redirect to first lesson if no lessonId in URL
     useEffect(() => {
         if (module && !lessonId && currentLessonId) {
@@ -54,13 +56,13 @@ export default function ModuleDetail({
         }
     }, [module, lessonId, currentLessonId, pathId, moduleId, router]);
 
-    // Load completed lessons from localStorage
+    // Update current position when lesson changes (only once per lesson)
     useEffect(() => {
-        const saved = localStorage.getItem('completedLessons');
-        if (saved) {
-            setCompletedLessons(JSON.parse(saved));
+        if (pathId && moduleId && currentLessonId && isAuthenticated) {
+            setCurrentPosition(pathId, moduleId, currentLessonId);
         }
-    }, []);
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [pathId, moduleId, currentLessonId, isAuthenticated]);
 
     if (!path || !module) {
         return (
@@ -102,22 +104,18 @@ export default function ModuleDetail({
     const nextLesson = getNextLesson(pathId!, moduleId!, lesson.id);
     const prevLesson = getPrevLesson(pathId!, moduleId!, lesson.id);
 
-    const handleLessonComplete = () => {
+    const handleLessonComplete = async () => {
         const lessonKey = `${moduleId}:${lesson.id}`;
 
         if (!completedLessons.includes(lessonKey)) {
-            const newCompleted = [...completedLessons, lessonKey];
-            setCompletedLessons(newCompleted);
-            localStorage.setItem('completedLessons', JSON.stringify(newCompleted));
+            // Use the new completeLesson function that syncs with backend
+            await completeLesson(moduleId!, lesson.id, lesson.xpReward);
 
-            if (isAuthenticated) {
-                addXP(lesson.xpReward);
-
-                // Check if module is complete
-                const newProgress = getModuleProgress(moduleId!, newCompleted);
-                if (newProgress.percentage === 100) {
-                    completeModule(pathId!, moduleId!);
-                }
+            // Check if module is complete
+            const newCompletedLessons = [...completedLessons, lessonKey];
+            const newProgress = getModuleProgress(moduleId!, newCompletedLessons);
+            if (newProgress.percentage === 100) {
+                await completeModule(pathId!, moduleId!);
             }
 
             toast({

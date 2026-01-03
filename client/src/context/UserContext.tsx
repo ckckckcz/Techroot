@@ -1,5 +1,5 @@
 "use client"
-import React, { createContext, useContext, useState, useEffect, ReactNode } from 'react';
+import React, { createContext, useContext, useState, useEffect, ReactNode, useCallback } from 'react';
 
 interface User {
   id: string;
@@ -9,9 +9,17 @@ interface User {
 }
 
 interface Progress {
+  completedLessons: string[];
   completedModules: string[];
   currentPath: string | null;
   currentModule: string | null;
+  currentLesson: string | null;
+}
+
+interface Badge {
+  badge_id: string;
+  badge_name: string;
+  earned_at: string;
 }
 
 interface UserContextType {
@@ -21,13 +29,17 @@ interface UserContextType {
   streak: number;
   lastActiveDate: string | null;
   progress: Progress;
+  badges: Badge[];
   isAuthenticated: boolean;
+  isLoading: boolean;
   login: (email: string, password: string) => Promise<boolean>;
   register: (name: string, email: string, password: string, institution?: string) => Promise<boolean>;
   logout: () => void;
   addXP: (amount: number) => void;
-  completeModule: (pathId: string, moduleId: string) => void;
-  setCurrentModule: (pathId: string, moduleId: string) => void;
+  completeLesson: (moduleId: string, lessonId: string, xpReward: number) => Promise<void>;
+  completeModule: (pathId: string, moduleId: string, xpReward?: number) => Promise<void>;
+  setCurrentPosition: (pathId: string, moduleId: string, lessonId?: string) => void;
+  syncProgress: () => Promise<void>;
 }
 
 const UserContext = createContext<UserContextType | undefined>(undefined);
@@ -38,88 +50,125 @@ const calculateLevel = (xp: number): number => {
   return Math.floor(xp / XP_PER_LEVEL) + 1;
 };
 
+const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000';
+
+// Helper to get auth headers
+const getAuthHeaders = () => {
+  const token = typeof window !== 'undefined' ? localStorage.getItem('Techroot_token') : null;
+  return {
+    'Content-Type': 'application/json',
+    ...(token ? { 'Authorization': `Bearer ${token}` } : {})
+  };
+};
+
 export const UserProvider: React.FC<{ children: ReactNode }> = ({ children }) => {
   const [user, setUser] = useState<User | null>(null);
   const [xp, setXP] = useState(0);
   const [streak, setStreak] = useState(0);
   const [lastActiveDate, setLastActiveDate] = useState<string | null>(null);
+  const [badges, setBadges] = useState<Badge[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
   const [progress, setProgress] = useState<Progress>({
+    completedLessons: [],
     completedModules: [],
     currentPath: null,
     currentModule: null,
+    currentLesson: null,
   });
 
-  // Load from localStorage on mount
+  // Load user from localStorage on mount
   useEffect(() => {
-    const savedUser = localStorage.getItem('Techroot_user');
-    const savedXP = localStorage.getItem('Techroot_xp');
-    const savedStreak = localStorage.getItem('Techroot_streak');
-    const savedLastActive = localStorage.getItem('Techroot_lastActive');
-    const savedProgress = localStorage.getItem('Techroot_progress');
+    const loadUserData = async () => {
+      try {
+        const savedUser = localStorage.getItem('Techroot_user');
+        const token = localStorage.getItem('Techroot_token');
 
-    if (savedUser) setUser(JSON.parse(savedUser));
-    if (savedXP) setXP(parseInt(savedXP));
-    if (savedStreak) setStreak(parseInt(savedStreak));
-    if (savedLastActive) setLastActiveDate(savedLastActive);
-    if (savedProgress) setProgress(JSON.parse(savedProgress));
+        if (savedUser && token) {
+          const userData = JSON.parse(savedUser);
+          setUser(userData);
+
+          // Fetch progress from backend
+          await fetchProgressFromServer(token);
+        }
+      } catch (error) {
+        console.error('Error loading user data:', error);
+      } finally {
+        setIsLoading(false);
+      }
+    };
+
+    loadUserData();
   }, []);
 
-  // Save to localStorage on changes
+  // Fetch progress from server
+  const fetchProgressFromServer = async (token?: string) => {
+    try {
+      const authToken = token || localStorage.getItem('Techroot_token');
+      if (!authToken) return;
+
+      const response = await fetch(`${API_URL}/api/progress`, {
+        headers: {
+          'Authorization': `Bearer ${authToken}`,
+          'Content-Type': 'application/json',
+        },
+      });
+
+      const data = await response.json();
+
+      if (data.success && data.data) {
+        const progressData = data.data;
+
+        setProgress({
+          completedLessons: progressData.completed_lessons || [],
+          completedModules: progressData.completed_modules || [],
+          currentPath: progressData.current_path,
+          currentModule: progressData.current_module,
+          currentLesson: progressData.current_lesson,
+        });
+
+        if (progressData.xp !== undefined) setXP(progressData.xp);
+        if (progressData.streak !== undefined) setStreak(progressData.streak);
+        if (progressData.last_active_date) setLastActiveDate(progressData.last_active_date);
+        if (progressData.badges) setBadges(progressData.badges);
+      }
+    } catch (error) {
+      console.error('Error fetching progress:', error);
+      // Fallback to localStorage
+      const savedProgress = localStorage.getItem('Techroot_progress');
+      const savedXP = localStorage.getItem('Techroot_xp');
+      const savedStreak = localStorage.getItem('Techroot_streak');
+
+      if (savedProgress) {
+        const parsed = JSON.parse(savedProgress);
+        setProgress({
+          completedLessons: parsed.completedLessons || [],
+          completedModules: parsed.completedModules || [],
+          currentPath: parsed.currentPath,
+          currentModule: parsed.currentModule,
+          currentLesson: parsed.currentLesson,
+        });
+      }
+      if (savedXP) setXP(parseInt(savedXP));
+      if (savedStreak) setStreak(parseInt(savedStreak));
+    }
+  };
+
+  // Save progress to localStorage as backup
   useEffect(() => {
     if (user) {
       localStorage.setItem('Techroot_user', JSON.stringify(user));
-    } else {
-      localStorage.removeItem('Techroot_user');
+      localStorage.setItem('Techroot_progress', JSON.stringify(progress));
+      localStorage.setItem('Techroot_xp', xp.toString());
+      localStorage.setItem('Techroot_streak', streak.toString());
     }
-  }, [user]);
-
-  useEffect(() => {
-    localStorage.setItem('Techroot_xp', xp.toString());
-  }, [xp]);
-
-  useEffect(() => {
-    localStorage.setItem('Techroot_streak', streak.toString());
-  }, [streak]);
-
-  useEffect(() => {
-    if (lastActiveDate) {
-      localStorage.setItem('Techroot_lastActive', lastActiveDate);
-    }
-  }, [lastActiveDate]);
-
-  useEffect(() => {
-    localStorage.setItem('Techroot_progress', JSON.stringify(progress));
-  }, [progress]);
-
-  // Check and update streak
-  useEffect(() => {
-    if (!user) return;
-
-    const today = new Date().toDateString();
-    if (lastActiveDate !== today) {
-      const yesterday = new Date();
-      yesterday.setDate(yesterday.getDate() - 1);
-
-      if (lastActiveDate === yesterday.toDateString()) {
-        setStreak(prev => prev + 1);
-      } else if (lastActiveDate !== null) {
-        setStreak(1);
-      } else {
-        setStreak(1);
-      }
-      setLastActiveDate(today);
-    }
-  }, [user, lastActiveDate]);
-
-  const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000';
+  }, [user, progress, xp, streak]);
 
   const login = async (email: string, password: string): Promise<boolean> => {
     try {
+      setIsLoading(true);
       const response = await fetch(`${API_URL}/api/auth/login`, {
         method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
+        headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ email, password }),
       });
 
@@ -133,11 +182,17 @@ export const UserProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
           name: user.name,
           avatar: user.avatar,
         });
-        setXP(user.xp || 0);
-        setStreak(user.streak || 0);
 
-        // Simpan token ke localStorage
         localStorage.setItem('Techroot_token', token);
+        localStorage.setItem('Techroot_user', JSON.stringify({
+          id: user.id,
+          email: user.email,
+          name: user.name,
+          avatar: user.avatar,
+        }));
+
+        // Fetch progress after login
+        await fetchProgressFromServer(token);
 
         return true;
       }
@@ -145,16 +200,17 @@ export const UserProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     } catch (error) {
       console.error('Login error:', error);
       return false;
+    } finally {
+      setIsLoading(false);
     }
   };
 
   const register = async (name: string, email: string, password: string, institution?: string): Promise<boolean> => {
     try {
+      setIsLoading(true);
       const response = await fetch(`${API_URL}/api/auth/register`, {
         method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
+        headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ name, email, password, institution }),
       });
 
@@ -162,23 +218,28 @@ export const UserProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
 
       if (data.success && data.data) {
         const { user, token } = data.data;
-        setUser({
+        const userData = {
           id: user.id,
           email: user.email,
           name: user.name,
           avatar: user.avatar,
-        });
+        };
+
+        setUser(userData);
         setXP(0);
         setStreak(1);
         setLastActiveDate(new Date().toDateString());
         setProgress({
+          completedLessons: [],
           completedModules: [],
           currentPath: null,
           currentModule: null,
+          currentLesson: null,
         });
+        setBadges([]);
 
-        // Simpan token ke localStorage
         localStorage.setItem('Techroot_token', token);
+        localStorage.setItem('Techroot_user', JSON.stringify(userData));
 
         return true;
       }
@@ -186,6 +247,8 @@ export const UserProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     } catch (error) {
       console.error('Register error:', error);
       return false;
+    } finally {
+      setIsLoading(false);
     }
   };
 
@@ -195,35 +258,153 @@ export const UserProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     setStreak(0);
     setLastActiveDate(null);
     setProgress({
+      completedLessons: [],
       completedModules: [],
       currentPath: null,
       currentModule: null,
+      currentLesson: null,
     });
-    // Hapus token saat logout
+    setBadges([]);
+
     localStorage.removeItem('Techroot_token');
+    localStorage.removeItem('Techroot_user');
+    localStorage.removeItem('Techroot_progress');
+    localStorage.removeItem('Techroot_xp');
+    localStorage.removeItem('Techroot_streak');
+    localStorage.removeItem('completedLessons');
   };
 
-  const addXP = (amount: number) => {
+  const addXP = useCallback((amount: number) => {
     setXP(prev => prev + amount);
-  };
+  }, []);
 
-  const completeModule = (pathId: string, moduleId: string) => {
-    const key = `${pathId}:${moduleId}`;
-    if (!progress.completedModules.includes(key)) {
-      setProgress(prev => ({
+  const completeLesson = useCallback(async (moduleId: string, lessonId: string, xpReward: number) => {
+    const lessonKey = `${moduleId}:${lessonId}`;
+
+    // Optimistic update
+    setProgress(prev => {
+      if (prev.completedLessons.includes(lessonKey)) {
+        return prev;
+      }
+      return {
         ...prev,
-        completedModules: [...prev.completedModules, key],
-      }));
-    }
-  };
+        completedLessons: [...prev.completedLessons, lessonKey],
+      };
+    });
+    setXP(prev => prev + xpReward);
 
-  const setCurrentModule = (pathId: string, moduleId: string) => {
+    // Sync with backend
+    try {
+      await fetch(`${API_URL}/api/progress/lesson`, {
+        method: 'POST',
+        headers: getAuthHeaders(),
+        body: JSON.stringify({ lesson_key: lessonKey, xp_reward: xpReward }),
+      });
+    } catch (error) {
+      console.error('Error syncing lesson completion:', error);
+    }
+  }, []);
+
+  const completeModule = useCallback(async (pathId: string, moduleId: string, xpReward?: number) => {
+    const moduleKey = `${pathId}:${moduleId}`;
+
+    // Optimistic update
+    setProgress(prev => {
+      if (prev.completedModules.includes(moduleKey)) {
+        return prev;
+      }
+      return {
+        ...prev,
+        completedModules: [...prev.completedModules, moduleKey],
+      };
+    });
+
+    if (xpReward) {
+      setXP(prev => prev + xpReward);
+    }
+
+    // Sync with backend
+    try {
+      await fetch(`${API_URL}/api/progress/module`, {
+        method: 'POST',
+        headers: getAuthHeaders(),
+        body: JSON.stringify({ module_key: moduleKey, xp_reward: xpReward || 0 }),
+      });
+    } catch (error) {
+      console.error('Error syncing module completion:', error);
+    }
+  }, []);
+
+  const setCurrentPosition = useCallback((pathId: string, moduleId: string, lessonId?: string) => {
     setProgress(prev => ({
       ...prev,
       currentPath: pathId,
       currentModule: moduleId,
+      currentLesson: lessonId || null,
     }));
-  };
+
+    // Sync with backend (fire and forget)
+    fetch(`${API_URL}/api/progress/current`, {
+      method: 'PUT',
+      headers: getAuthHeaders(),
+      body: JSON.stringify({
+        current_path: pathId,
+        current_module: moduleId,
+        current_lesson: lessonId
+      }),
+    }).catch(error => console.error('Error syncing current position:', error));
+  }, []);
+
+  const syncProgress = useCallback(async () => {
+    if (!user) return;
+
+    try {
+      await fetch(`${API_URL}/api/progress/sync`, {
+        method: 'POST',
+        headers: getAuthHeaders(),
+        body: JSON.stringify({
+          completed_lessons: progress.completedLessons,
+          completed_modules: progress.completedModules,
+          current_path: progress.currentPath,
+          current_module: progress.currentModule,
+          current_lesson: progress.currentLesson,
+          xp,
+          streak,
+        }),
+      });
+    } catch (error) {
+      console.error('Error syncing progress:', error);
+    }
+  }, [user, progress, xp, streak]);
+
+  // Sync progress before page unload
+  useEffect(() => {
+    const handleBeforeUnload = () => {
+      if (user) {
+        // Use sendBeacon for reliable sync on page unload
+        const data = JSON.stringify({
+          completed_lessons: progress.completedLessons,
+          completed_modules: progress.completedModules,
+          current_path: progress.currentPath,
+          current_module: progress.currentModule,
+          current_lesson: progress.currentLesson,
+          xp,
+          streak,
+        });
+
+        const token = localStorage.getItem('Techroot_token');
+        if (token) {
+          navigator.sendBeacon(
+            `${API_URL}/api/progress/sync`,
+            new Blob([data], { type: 'application/json' })
+          );
+        }
+      }
+    };
+
+    window.addEventListener('beforeunload', handleBeforeUnload);
+    return () => window.removeEventListener('beforeunload', handleBeforeUnload);
+  }, [user, progress, xp, streak]);
 
   const level = calculateLevel(xp);
 
@@ -236,13 +417,17 @@ export const UserProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
         streak,
         lastActiveDate,
         progress,
+        badges,
         isAuthenticated: !!user,
+        isLoading,
         login,
         register,
         logout,
         addXP,
+        completeLesson,
         completeModule,
-        setCurrentModule,
+        setCurrentPosition,
+        syncProgress,
       }}
     >
       {children}

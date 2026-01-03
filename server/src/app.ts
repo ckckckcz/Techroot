@@ -2,6 +2,7 @@ import express from 'express';
 import cors from 'cors';
 import healthRoute from './routes/health.route';
 import authRoute from './routes/auth.route';
+import progressRoute from './routes/progress.route';
 
 export const app = express();
 
@@ -10,6 +11,7 @@ app.use(express.json());
 
 app.use('/health', healthRoute);
 app.use('/api/auth', authRoute);
+app.use('/api/progress', progressRoute);
 
 app.get('/', (req, res) => {
     res.json({
