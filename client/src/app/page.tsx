@@ -166,7 +166,7 @@ export default function Landing() {
                   "Modern, elegan, dan fokus pada keterampilan nyata. Saya sangat menyukai proyek praktis dan sistemnya."
                 </p>
                 <div className="flex items-center gap-4">
-                  <div className="h-12 w-12 rounded-full bg-gradient-to-tr from-[#D7FE44] to-yellow-500 border-2 border-white/40 shadow-inner flex items-center justify-center font-bold text-[#1a1a1a]">JK</div>
+                  <div className="h-12 w-12 rounded-full bg-gradient-to-tr from-[#D7FE44] to-blue-500 border-2 border-white/40 shadow-inner flex items-center justify-center font-bold text-[#1a1a1a]">JK</div>
                   <div>
                     <h5 className="text-sm font-bold text-white">Jason Kim</h5>
                     <p className="text-xs text-blue-100/60 font-medium">UX Designer</p>
@@ -361,22 +361,149 @@ export default function Landing() {
         </div>
       </section>
 
-      {/* Footer */}
-      <footer className="py-12 bg-slate-50 border-t border-slate-100">
+      {/* Testimonial Section */}
+      <section className="py-24 bg-white relative overflow-hidden">
         <div className="container max-w-7xl mx-auto px-4">
-          <div className="flex flex-col md:flex-row justify-between items-center gap-8">
-            <div className="flex items-center gap-2">
-              <Code2 className="h-8 w-8 text-[#2443B0]" />
-              <span className="text-xl font-black tracking-tight">Techroot</span>
+          <div className="text-center space-y-4 lg:mb-20 mb-5">
+            <h2 className="text-4xl md:text-5xl font-semibold tracking-tight text-slate-900">
+              Dengarkan Kisah Para<br />Pelajar Kami
+            </h2>
+          </div>
+
+          <div className="relative overflow-hidden md:overflow-visible group">
+            {/* Mobile Scrollable / Desktop Grid Container */}
+            <div className="flex md:grid md:grid-cols-3 gap-6 md:gap-8 lg:gap-12 overflow-x-auto md:overflow-x-visible snap-x snap-mandatory scrollbar-hide py-4 px-4 -mx-4 md:p-0 md:m-0 no-scrollbar">
+              {/* Testimonial 1 */}
+              <div className="flex flex-col space-y-6 w-[80vw] md:w-auto shrink-0 snap-center snap-always p-4 md:p-0 h-full">
+                <div className="text-[#44fe9b] text-5xl font-serif leading-none">“</div>
+                <p className="text-lg text-slate-700 leading-relaxed font-medium flex-grow">
+                  "Dulu saya kesulitan beralih dari desain cetak ke desain digital, tapi kursus di Techroot membantu saya mengasah keterampilan UI/UX. <span className="bg-[#FEF9C3] px-1">Sekarang, saya bekerja dengan klien dari seluruh dunia dan menikmati fleksibilitas</span> untuk belajar sesuai kecepatan saya sendiri!"
+                </p>
+                <div className="flex items-center gap-4 pt-6 mt-auto">
+                  <div className="h-12 w-12 rounded-full overflow-hidden relative border-2 border-slate-100">
+                    <Image src="https://i.pravatar.cc/150?u=sarah" alt="Sarah" fill className="object-cover" />
+                  </div>
+                  <div>
+                    <h4 className="font-bold text-slate-900">Sarah Viloid</h4>
+                    <p className="text-sm text-slate-500">Freelance Graphic Designer</p>
+                  </div>
+                </div>
+              </div>
+
+              {/* Testimonial 2 */}
+              <div className="flex flex-col space-y-6 w-[80vw] md:w-auto shrink-0 snap-center snap-always p-4 md:p-0 h-full">
+                <div className="text-[#44fe9b] text-5xl font-serif leading-none">“</div>
+                <p className="text-lg text-slate-700 leading-relaxed font-medium flex-grow">
+                  "Saya bekerja penuh waktu dan tidak menyangka akan punya waktu untuk belajar coding. Namun, <span className="bg-[#DCFCE7] px-1">pelajaran singkat dan jadwal fleksibel di Techroot memungkinkan semuanya.</span>"
+                </p>
+                <div className="flex items-center gap-4 pt-6 mt-auto">
+                  <div className="h-12 w-12 rounded-full overflow-hidden relative border-2 border-slate-100">
+                    <Image src="https://i.pravatar.cc/150?u=mike" alt="Mike" fill className="object-cover" />
+                  </div>
+                  <div>
+                    <h4 className="font-bold text-slate-900">Mike Tyson</h4>
+                    <p className="text-sm text-slate-500">Marketing Manager</p>
+                  </div>
+                </div>
+              </div>
+
+              {/* Testimonial 3 */}
+              <div className="flex flex-col space-y-6 w-[80vw] md:w-auto shrink-0 snap-center snap-always p-4 md:p-0 h-full">
+                <div className="text-[#44fe9b] text-5xl font-serif leading-none">“</div>
+                <p className="text-lg text-slate-700 leading-relaxed font-medium flex-grow">
+                  "Yang saya sukai dari Techroot adalah pendekatan praktisnya. <span className="bg-[#FCE7F3] px-1">Kursusnya sangat interaktif, dan saya bisa langsung menerapkan</span> apa yang saya pelajari ke dalam proyek nyata secara instan."
+                </p>
+                <div className="flex items-center gap-4 pt-6 mt-auto">
+                  <div className="h-12 w-12 rounded-full overflow-hidden relative border-2 border-slate-100">
+                    <Image src="https://i.pravatar.cc/150?u=anita" alt="Anita" fill className="object-cover" />
+                  </div>
+                  <div>
+                    <h4 className="font-bold text-slate-900">Anita Chan</h4>
+                    <p className="text-sm text-slate-500">Aspiring Web Developer</p>
+                  </div>
+                </div>
+              </div>
             </div>
-            <nav className="flex gap-8 text-sm font-semibold text-slate-500">
-              <Link href="#" className="hover:text-[#2443B0]">Beranda</Link>
-              <Link href="#" className="hover:text-[#2443B0]">Kursus</Link>
-              <Link href="#" className="hover:text-[#2443B0]">Tentang Kami</Link>
-              <Link href="#" className="hover:text-[#2443B0]">Kontak</Link>
-            </nav>
-            <div className="text-slate-400 text-sm font-medium">
-              © 2025 Techroot. Hak Cipta Dilindungi.
+          </div>
+        </div>
+      </section>
+
+      {/* Minimalist Revamped Footer Section */}
+      <footer className="bg-[#0b0b0b] text-white pt-24 pb-12">
+        <div className="container max-w-7xl mx-auto px-6">
+          <div className="grid grid-cols-1 md:grid-cols-12 gap-16 md:gap-8">
+            {/* Left Column - Logo & Contact */}
+            <div className="md:col-span-4 space-y-12">
+              <div className="relative h-24 w-24 md:h-32 md:w-32 group">
+                <Image
+                  src="/polinema.png"
+                  alt="Polinema"
+                  fill
+                  className="object-contain filter grayscale invert brightness-200 transition-all duration-500 group-hover:grayscale-0 group-hover:invert-0"
+                />
+              </div>
+              <div className="">
+                <p className="text-sm font-medium text-gray-500 tracking-wide">(+62) 812-3456-7890</p>
+                <Link href="mailto:halo@techroot.id" className="text-2xl md:text-3xl font-bold tracking-tight hover:text-[#D7FE44] transition-colors">
+                  halo@techroot.id
+                </Link>
+              </div>
+            </div>
+
+            {/* Middle Column - Insights & Subscription */}
+            <div className="md:col-span-4 space-y-8">
+              <div className="space-y-4">
+                <h3 className="text-3xl md:text-4xl font-bold tracking-tight leading-tight">
+                  Dapatkan Insight<br />Terbaru Kami
+                </h3>
+                <p className="text-gray-500 text-sm max-w-xs leading-relaxed">
+                  Jadilah yang pertama tahu tentang perkembangan teknologi & karir digital yang relevan untuk Anda.
+                </p>
+              </div>
+              <div className="relative max-w-sm group">
+                <input
+                  type="email"
+                  placeholder="E-mail"
+                  className="w-full bg-transparent border-b border-gray-800 py-3 text-white placeholder:text-gray-700 focus:outline-none focus:border-[#D7FE44] transition-colors"
+                />
+                <button className="absolute right-0 bottom-3 h-8 w-8 rounded-full bg-gray-800 flex items-center justify-center hover:bg-[#D7FE44] hover:text-black transition-all">
+                  <ArrowRight className="h-4 w-4 -rotate-45" />
+                </button>
+              </div>
+            </div>
+
+            {/* Right Column - Navigation Links */}
+            <div className="md:col-span-4 grid grid-cols-2 gap-8 md:pl-12">
+              <div className="space-y-6">
+                <h4 className="text-xs font-bold uppercase tracking-[0.2em] text-gray-600">Menu</h4>
+                <ul className="space-y-4">
+                  {['Tentang Kami', 'Kursus'].map((item) => (
+                    <li key={item}>
+                      <Link href="#" className="text-base text-gray-400 hover:text-white transition-colors">{item}</Link>
+                    </li>
+                  ))}
+                </ul>
+              </div>
+              <div className="space-y-6">
+                <h4 className="text-xs font-bold uppercase tracking-[0.2em] text-gray-600">Socials</h4>
+                <ul className="space-y-4">
+                  {['LinkedIn', 'Instagram', 'YouTube'].map((item) => (
+                    <li key={item}>
+                      <Link href="#" className="text-base text-gray-400 hover:text-white transition-colors">{item}</Link>
+                    </li>
+                  ))}
+                </ul>
+              </div>
+            </div>
+          </div>
+
+          {/* Bottom Section - Mission & Copyright */}
+          <div className="mt-24 pt-12 border-t border-gray-900 flex flex-col md:flex-row justify-between items-center gap-8">
+            <p className="text-gray-500 text-sm max-w-md text-center md:text-left leading-relaxed">
+              Di Techroot, kami melampaui sekadar platform belajar—menghadirkan pengalaman yang didukung oleh kurikulum berbasis industri untuk menghubungkan Anda dengan peluang nyata.
+            </p>
+            <div className="text-gray-600 text-sm font-medium tracking-tight">
+              © 2025. Techroot Global. All Rights Reserved.
             </div>
           </div>
         </div>
