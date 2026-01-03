@@ -143,16 +143,14 @@ export default function Landing() {
                   <p className="text-blue-100/70 text-sm leading-relaxed">
                     Bergabunglah dengan komunitas global yang berkembang—lebih dari 100.000 pelajar dan 500+ kisah sukses.
                   </p>
-                  <button className="flex items-center gap-2 px-6 py-2.5 bg-[#D7FE44] text-[#1a1a1a] rounded-full font-semibold text-sm hover:scale-105 transition-transform mt-4">
-                    Jelajahi Kursus <ChevronRight className="h-4 w-4" />
-                  </button>
                 </div>
-                {/* Decorative circle */}
-                <div className="absolute -bottom-10 -right-10 w-40 aspect-square bg-blue-500/20 rounded-full blur-3xl group-hover:bg-blue-400/30 transition-colors" />
+                <button className="flex items-center gap-2 px-6 py-2.5 bg-[#D7FE44] text-[#1a1a1a] rounded-full font-semibold text-sm hover:scale-105 transition-transform mt-4">
+                  Jelajahi Kursus <ChevronRight className="h-4 w-4" />
+                </button>
               </div>
 
-              <div className="bg-[#2443B0] rounded-3xl p-8 text-white space-y-6 relative overflow-hidden group">
-                <div className="flex -space-x-2">
+              <div className="bg-[#2443B0] rounded-3xl p-8 text-white space-y-4 relative overflow-hidden group">
+                <div className="flex -space-x-3">
                   {[1, 2, 3, 4].map((i) => (
                     <div key={i} className="h-10 w-10 rounded-full border-2 border-[#2443B0] overflow-hidden relative">
                       <Image src={`https://i.pravatar.cc/100?u=mentor${i}`} alt="Mentor" fill className="object-cover" />
