@@ -23,7 +23,7 @@ interface UserContextType {
   progress: Progress;
   isAuthenticated: boolean;
   login: (email: string, password: string) => Promise<boolean>;
-  register: (name: string, email: string, password: string) => Promise<boolean>;
+  register: (name: string, email: string, password: string, institution?: string) => Promise<boolean>;
   logout: () => void;
   addXP: (amount: number) => void;
   completeModule: (pathId: string, moduleId: string) => void;
@@ -111,52 +111,82 @@ export const UserProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     }
   }, [user, lastActiveDate]);
 
+  const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000';
+
   const login = async (email: string, password: string): Promise<boolean> => {
-    // Simulate API call
-    await new Promise(resolve => setTimeout(resolve, 500));
+    try {
+      const response = await fetch(`${API_URL}/api/auth/login`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ email, password }),
+      });
 
-    // For demo, any valid email/password combo works
-    if (email && password.length >= 4) {
-      const savedUsers = JSON.parse(localStorage.getItem('Techroot_users') || '[]');
-      const existingUser = savedUsers.find((u: any) => u.email === email);
+      const data = await response.json();
 
-      if (existingUser) {
-        setUser(existingUser);
+      if (data.success && data.data) {
+        const { user, token } = data.data;
+        setUser({
+          id: user.id,
+          email: user.email,
+          name: user.name,
+          avatar: user.avatar,
+        });
+        setXP(user.xp || 0);
+        setStreak(user.streak || 0);
+
+        // Simpan token ke localStorage
+        localStorage.setItem('Techroot_token', token);
+
         return true;
       }
       return false;
+    } catch (error) {
+      console.error('Login error:', error);
+      return false;
     }
-    return false;
   };
 
-  const register = async (name: string, email: string, password: string): Promise<boolean> => {
-    // Simulate API call
-    await new Promise(resolve => setTimeout(resolve, 500));
-
-    if (name && email && password.length >= 4) {
-      const newUser: User = {
-        id: Date.now().toString(),
-        email,
-        name,
-      };
-
-      const savedUsers = JSON.parse(localStorage.getItem('Techroot_users') || '[]');
-      savedUsers.push(newUser);
-      localStorage.setItem('Techroot_users', JSON.stringify(savedUsers));
-
-      setUser(newUser);
-      setXP(0);
-      setStreak(1);
-      setLastActiveDate(new Date().toDateString());
-      setProgress({
-        completedModules: [],
-        currentPath: null,
-        currentModule: null,
+  const register = async (name: string, email: string, password: string, institution?: string): Promise<boolean> => {
+    try {
+      const response = await fetch(`${API_URL}/api/auth/register`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ name, email, password, institution }),
       });
 
-      return true;
+      const data = await response.json();
+
+      if (data.success && data.data) {
+        const { user, token } = data.data;
+        setUser({
+          id: user.id,
+          email: user.email,
+          name: user.name,
+          avatar: user.avatar,
+        });
+        setXP(0);
+        setStreak(1);
+        setLastActiveDate(new Date().toDateString());
+        setProgress({
+          completedModules: [],
+          currentPath: null,
+          currentModule: null,
+        });
+
+        // Simpan token ke localStorage
+        localStorage.setItem('Techroot_token', token);
+
+        return true;
+      }
+      return false;
+    } catch (error) {
+      console.error('Register error:', error);
+      return false;
     }
-    return false;
   };
 
   const logout = () => {
@@ -169,6 +199,8 @@ export const UserProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
       currentPath: null,
       currentModule: null,
     });
+    // Hapus token saat logout
+    localStorage.removeItem('Techroot_token');
   };
 
   const addXP = (amount: number) => {

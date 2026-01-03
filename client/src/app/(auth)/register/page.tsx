@@ -46,7 +46,7 @@ export default function Register() {
         setIsLoading(true);
 
         try {
-            const success = await register(name, email, password);
+            const success = await register(name, email, password, institution);
 
             if (success) {
                 toast({
