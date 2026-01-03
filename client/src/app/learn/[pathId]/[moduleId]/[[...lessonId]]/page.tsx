@@ -184,7 +184,7 @@ export default function ModuleDetail({
                         activeTab === 'materi' ? "overflow-y-auto pb-10" : "overflow-hidden"
                     )}>
                         {activeTab === 'materi' ? (
-                            <div className="max-w-4xl mx-auto px-6 py-8">
+                            <div className="max-w-5xl mx-auto px-4 py-8 md:px-8 w-full">
                                 <LessonContent
                                     lesson={lesson}
                                     isCompleted={isLessonCompleted}

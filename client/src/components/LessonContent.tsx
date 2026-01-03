@@ -201,7 +201,7 @@ const MaterialContent: React.FC<LessonContentProps> = ({ lesson, isCompleted, on
   }, [isCompleted]);
 
   return (
-    <div className="max-w-3xl">
+    <div className="max-w-7xl">
       <MarkdownContent content={lesson.content || ''} />
 
       {!isCompleted && (
@@ -230,7 +230,7 @@ const VideoContent: React.FC<LessonContentProps> = ({ lesson, isCompleted, onCom
   const [hasWatched, setHasWatched] = useState(isCompleted);
 
   return (
-    <div className="max-w-3xl">
+    <div className="w-full">
       {/* Video Player */}
       <div className="aspect-video bg-slate-100 rounded-xl mb-5 overflow-hidden border border-slate-200">
         {lesson.videoUrl ? (
@@ -278,7 +278,7 @@ const VideoContent: React.FC<LessonContentProps> = ({ lesson, isCompleted, onCom
 // Quiz Content Component
 const QuizContent: React.FC<LessonContentProps> = ({ lesson, isCompleted, onComplete }) => {
   return (
-    <div className="max-w-3xl">
+    <div className="w-full">
       <div className="mb-5">
         <div className="flex items-center gap-3 mb-4">
           <div className="h-10 w-10 rounded-xl bg-[#D7FE44] flex items-center justify-center">

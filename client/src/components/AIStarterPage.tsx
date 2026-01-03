@@ -288,8 +288,6 @@ export const AIStarterPage = () => {
                                                                     alt={file.name}
                                                                     className="h-full w-full object-cover"
                                                                     onLoad={() => {
-                                                                        // Optional: Revoke URL after load if not needed for long, 
-                                                                        // but here it's fine as we might need it for re-renders
                                                                     }}
                                                                 />
                                                             </div>
