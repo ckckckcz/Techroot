@@ -3,7 +3,7 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 
-import { ArrowLeft, BookOpen, HelpCircle, Settings } from "lucide-react";
+import { BookOpen, Bot } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 import {
@@ -20,8 +20,7 @@ interface LearningSidebarProps {
 
 const sidebarItems = [
   { icon: BookOpen, label: "Materi", hash: "" },
-  { icon: HelpCircle, label: "Bantuan", hash: "#help" },
-  { icon: Settings, label: "Pengaturan", hash: "#settings" },
+  { icon: Bot, label: "Tanya Root", hash: "#ask-root" },
 ];
 
 export function LearningSidebar({
@@ -32,28 +31,10 @@ export function LearningSidebar({
 
   return (
     <div className="w-14 bg-card border-r border-border flex flex-col items-center py-4 gap-6">
-      {/* Back to path */}
-      <TooltipProvider>
-        <Tooltip>
-          <TooltipTrigger asChild>
-            <Link
-              href={`/paths/${pathId}`}
-              className="flex items-center justify-center h-10 w-10 rounded-lg hover:bg-muted transition-colors"
-            >
-              <ArrowLeft className="h-5 w-5" />
-            </Link>
-          </TooltipTrigger>
-          <TooltipContent side="right">
-            <p>Kembali ke {pathTitle}</p>
-          </TooltipContent>
-        </Tooltip>
-      </TooltipProvider>
-
-      <div className="w-8 h-px bg-border" />
-
+      <div className="w-8 h-10 bg-white" />
       {/* Navigation */}
       <TooltipProvider>
-        <nav className="flex flex-col gap-2">
+        <nav className="flex flex-col gap-4">
           {sidebarItems.map((item) => {
             const Icon = item.icon;
 

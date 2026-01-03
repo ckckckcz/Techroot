@@ -3,7 +3,7 @@
 import { Header } from '@/components/layout/Header';
 import { CodePlayground } from '@/components/CodePlayground';
 
-const defaultCode = `// Welcome to the CodeLearn Playground! 
+const defaultCode = `// Welcome to the Techroot Playground! 
 // Write any JavaScript code and click "Run Code" to execute it.
 
 // Example: Calculate the factorial of a number

@@ -49,7 +49,7 @@ export default function Register() {
             if (success) {
                 toast({
                     title: 'Account created! ',
-                    description: 'Welcome to CodeLearn.  Start your learning journey!',
+                    description: 'Welcome to Techroot.  Start your learning journey!',
                 });
                 router.push('/dashboard');
             } else {

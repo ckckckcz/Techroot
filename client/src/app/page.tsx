@@ -138,10 +138,10 @@ console.log(greeting);
           <div className="flex flex-col sm:flex-row items-center justify-between gap-4">
             <div className="flex items-center gap-2 text-muted-foreground">
               <Code2 className="h-5 w-5" />
-              <span className="font-medium">CodeLearn</span>
+              <span className="font-medium">Techroot</span>
             </div>
             <p className="text-sm text-muted-foreground">
-              © 2024 CodeLearn.  Learn by doing.
+              © 2024 Techroot.  Learn by doing.
             </p>
           </div>
         </div>

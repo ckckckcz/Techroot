@@ -5,6 +5,7 @@ interface User {
   id: string;
   email: string;
   name: string;
+  avatar?: string;
 }
 
 interface Progress {
@@ -50,11 +51,11 @@ export const UserProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
 
   // Load from localStorage on mount
   useEffect(() => {
-    const savedUser = localStorage.getItem('codelearn_user');
-    const savedXP = localStorage.getItem('codelearn_xp');
-    const savedStreak = localStorage.getItem('codelearn_streak');
-    const savedLastActive = localStorage.getItem('codelearn_lastActive');
-    const savedProgress = localStorage.getItem('codelearn_progress');
+    const savedUser = localStorage.getItem('Techroot_user');
+    const savedXP = localStorage.getItem('Techroot_xp');
+    const savedStreak = localStorage.getItem('Techroot_streak');
+    const savedLastActive = localStorage.getItem('Techroot_lastActive');
+    const savedProgress = localStorage.getItem('Techroot_progress');
 
     if (savedUser) setUser(JSON.parse(savedUser));
     if (savedXP) setXP(parseInt(savedXP));
@@ -66,28 +67,28 @@ export const UserProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
   // Save to localStorage on changes
   useEffect(() => {
     if (user) {
-      localStorage.setItem('codelearn_user', JSON.stringify(user));
+      localStorage.setItem('Techroot_user', JSON.stringify(user));
     } else {
-      localStorage.removeItem('codelearn_user');
+      localStorage.removeItem('Techroot_user');
     }
   }, [user]);
 
   useEffect(() => {
-    localStorage.setItem('codelearn_xp', xp.toString());
+    localStorage.setItem('Techroot_xp', xp.toString());
   }, [xp]);
 
   useEffect(() => {
-    localStorage.setItem('codelearn_streak', streak.toString());
+    localStorage.setItem('Techroot_streak', streak.toString());
   }, [streak]);
 
   useEffect(() => {
     if (lastActiveDate) {
-      localStorage.setItem('codelearn_lastActive', lastActiveDate);
+      localStorage.setItem('Techroot_lastActive', lastActiveDate);
     }
   }, [lastActiveDate]);
 
   useEffect(() => {
-    localStorage.setItem('codelearn_progress', JSON.stringify(progress));
+    localStorage.setItem('Techroot_progress', JSON.stringify(progress));
   }, [progress]);
 
   // Check and update streak
@@ -116,7 +117,7 @@ export const UserProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
 
     // For demo, any valid email/password combo works
     if (email && password.length >= 4) {
-      const savedUsers = JSON.parse(localStorage.getItem('codelearn_users') || '[]');
+      const savedUsers = JSON.parse(localStorage.getItem('Techroot_users') || '[]');
       const existingUser = savedUsers.find((u: any) => u.email === email);
 
       if (existingUser) {
@@ -139,9 +140,9 @@ export const UserProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
         name,
       };
 
-      const savedUsers = JSON.parse(localStorage.getItem('codelearn_users') || '[]');
+      const savedUsers = JSON.parse(localStorage.getItem('Techroot_users') || '[]');
       savedUsers.push(newUser);
-      localStorage.setItem('codelearn_users', JSON.stringify(savedUsers));
+      localStorage.setItem('Techroot_users', JSON.stringify(savedUsers));
 
       setUser(newUser);
       setXP(0);

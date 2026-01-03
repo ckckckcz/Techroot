@@ -7,7 +7,7 @@ import { Toaster } from '@/components/ui/toaster';
 const inter = Inter({ subsets: ['latin'] });
 
 export const metadata: Metadata = {
-  title: 'CodeLearn - Learn to code by writing code',
+  title: 'Techroot - Learn to code by writing code',
   description: 'Master programming through hands-on practice.  Write real code, get instant feedback, and track your progress.',
 };
 
