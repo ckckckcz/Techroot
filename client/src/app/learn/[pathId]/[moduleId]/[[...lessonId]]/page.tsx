@@ -229,6 +229,7 @@ export default function ModuleDetail({
                 prevLesson={prevLesson}
                 nextLesson={nextLesson}
                 currentLessonTitle={lesson.title}
+                currentLessonXP={lesson.xpReward}
             />
         </div>
     );
