@@ -1,9 +1,68 @@
 "use client";
 
+import { useState } from 'react';
 import Link from 'next/link';
 import Image from 'next/image';
 import { Header } from '@/components/layout/Header';
 import { ArrowRight, Code2, Zap, Target, Sparkles, Star, Clock, Calendar, ChevronRight } from 'lucide-react';
+
+const categories = [
+  {
+    id: 'design',
+    title: 'Design & Creativity',
+    count: '639+',
+    images: [
+      'https://images.unsplash.com/photo-1558655146-d09347e92766?q=80&w=400&auto=format&fit=crop',
+      'https://images.unsplash.com/photo-1541462608141-ad60397d4bc7?q=80&w=400&auto=format&fit=crop',
+      'https://images.unsplash.com/photo-1561070791-2526d30994b5?q=80&w=400&auto=format&fit=crop',
+      'https://images.unsplash.com/photo-1626785774573-4b799315345d?q=80&w=400&auto=format&fit=crop'
+    ]
+  },
+  {
+    id: 'tech',
+    title: 'Tech & Programming',
+    count: '261+',
+    images: [
+      'https://images.unsplash.com/photo-1498050108023-c5249f4df085?q=80&w=400&auto=format&fit=crop',
+      'https://images.unsplash.com/photo-1517694712202-14dd9538aa97?q=80&w=400&auto=format&fit=crop',
+      'https://images.unsplash.com/photo-1555066931-4365d14bab8c?q=80&w=400&auto=format&fit=crop',
+      'https://images.unsplash.com/photo-1587620962725-abab7fe55159?q=80&w=400&auto=format&fit=crop'
+    ]
+  },
+  {
+    id: 'business',
+    title: 'Business & Marketing',
+    count: '1,529+',
+    images: [
+      'https://images.unsplash.com/photo-1460925895917-afdab827c52f?q=80&w=400&auto=format&fit=crop',
+      'https://images.unsplash.com/photo-1552664730-d307ca884978?q=80&w=400&auto=format&fit=crop',
+      'https://images.unsplash.com/photo-1519389950473-47ba0277781c?q=80&w=400&auto=format&fit=crop',
+      'https://images.unsplash.com/photo-1454165833772-d99628a5ffad?q=80&w=400&auto=format&fit=crop'
+    ]
+  },
+  {
+    id: 'photography',
+    title: 'Photography & Visual Arts',
+    count: '975+',
+    images: [
+      'https://images.unsplash.com/photo-1542038784456-1ea8e935640e?q=80&w=400&auto=format&fit=crop',
+      'https://images.unsplash.com/photo-1493723843671-1d655e7d9742?q=80&w=400&auto=format&fit=crop',
+      'https://images.unsplash.com/photo-1516035069371-29a1b244cc32?q=80&w=400&auto=format&fit=crop',
+      'https://images.unsplash.com/photo-1470770841072-f978cf4d019e?q=80&w=400&auto=format&fit=crop'
+    ]
+  },
+  {
+    id: 'personal',
+    title: 'Personal Development',
+    count: '820+',
+    images: [
+      'https://images.unsplash.com/photo-1506126613408-eca07ce68773?q=80&w=400&auto=format&fit=crop',
+      'https://images.unsplash.com/photo-1517486808906-6ca8b3f04846?q=80&w=400&auto=format&fit=crop',
+      'https://images.unsplash.com/photo-1522202176988-66273c2fd55f?q=80&w=400&auto=format&fit=crop',
+      'https://images.unsplash.com/photo-1516321318423-f06f85e504b3?q=80&w=400&auto=format&fit=crop'
+    ]
+  }
+];
 
 function FeatureRadio({ title, description, icon, defaultChecked = false }: { title: string; description: string; icon: React.ReactNode; defaultChecked?: boolean }) {
   return (
@@ -27,8 +86,10 @@ function FeatureRadio({ title, description, icon, defaultChecked = false }: { ti
 }
 
 export default function Landing() {
+  const [activeCategory, setActiveCategory] = useState(categories[1]);
+
   return (
-    <div className="min-h-screen bg-background">
+    <div className="min-h-screen bg-background text-slate-900">
       <Header />
 
       {/* Hero Section */}
@@ -117,6 +178,77 @@ export default function Landing() {
         </div>
       </section>
 
+      {/* Categories Section */}
+      <section className="py-24 bg-white relative overflow-hidden min-h-[800px] flex items-center">
+        <div className="container max-w-7xl mx-auto px-4 relative z-10">
+          <div className="text-center space-y-2 relative z-10">
+            <div className="inline-flex items-center px-4 py-1.5 rounded-full bg-white text-slate-600 text-sm font-medium border border-slate-200 shadow-sm">
+              Kategori Courses
+            </div>
+            <h2 className="text-3xl md:text-4xl font-semibold tracking-tight text-slate-900 leading-tight">
+              Temukan Kursus yang Sesuai dengan Minat Anda <br />Lebih Baik, Lebih Cepat, & Lebih Goat 🐐.
+            </h2>
+            <p className="text-slate-500 max-w-2xl mx-auto text-base leading-relaxed">
+              Dari pembelajaran berbasis AI hingga proyek dunia nyata, platform kami memberdayakan Anda untuk terus belajar.
+            </p>
+          </div>
+
+          <div className="relative flex justify-center mt-40">
+            {/* Floating Images - Brought closer to center */}
+            <div >
+              {/* Top Left */}
+              <div className="absolute top-[-80px] left-[3%] md:left-[1%] w-32 h-32 md:w-36 md:h-36 rounded-2xl overflow-hidden shadow-2xl transition-all duration-700 transform hover:scale-105 z-10">
+                <Image src={activeCategory.images[0]} alt="cat" fill className="object-cover" />
+              </div>
+              {/* Top Right */}
+              <div className="absolute top-[-30px] right-[10%] md:right-[5%] w-36 h-40 md:w-44 md:h-56 rounded-2xl overflow-hidden shadow-2xl transition-all duration-700 transform hover:scale-105 z-10">
+                <Image src={activeCategory.images[1]} alt="cat" fill className="object-cover" />
+              </div>
+              {/* Bottom Left */}
+              <div className="absolute bottom-[-80px] left-[6%] md:left-[4%] w-40 h-40 md:w-48 md:h-48 rounded-2xl overflow-hidden shadow-2xl transition-all duration-700 transform hover:scale-105 z-10">
+                <Image src={activeCategory.images[2]} alt="cat" fill className="object-cover" />
+              </div>
+              {/* Bottom Right */}
+              <div className="absolute bottom-[-120px] right-[10%] md:right-[1%] w-32 h-40 md:w-40 md:h-52 rounded-2xl overflow-hidden shadow-2xl transition-all duration-700 transform hover:scale-105 z-10">
+                <Image src={activeCategory.images[3]} alt="cat" fill className="object-cover" />
+              </div>
+            </div>
+
+            {/* Category List */}
+            <div className="flex flex-col items-center space-y-6 relative z-20 bg-white/40 backdrop-blur-sm p-10 rounded-3xl border border-white/20">
+              {categories.map((cat) => (
+                <div
+                  key={cat.id}
+                  onMouseEnter={() => setActiveCategory(cat)}
+                  className={`group flex items-center gap-4 cursor-pointer transition-all duration-300 ${activeCategory.id === cat.id ? 'translate-x-4' : 'hover:translate-x-2'}`}
+                >
+                  <div className={`h-2.5 w-2.5 rounded-full border-2 border-slate-300 transition-all duration-500 ${activeCategory.id === cat.id ? 'bg-[#2443B0] scale-[2] border-[#2443B0]' : 'group-hover:scale-150'}`} />
+                  <div className="flex items-center gap-4">
+                    <span className={`text-2xl md:text-lg font-semibold transition-colors duration-300 ${activeCategory.id === cat.id ? 'text-slate-900' : 'text-slate-300 group-hover:text-slate-400'}`}>
+                      {cat.title}
+                    </span>
+                    <span className="text-slate-300 font-medium text-base mt-2">({cat.count})</span>
+                  </div>
+                  {activeCategory.id === cat.id && (
+                    <div className="animate-in fade-in slide-in-from-left-4 duration-500">
+                      <ArrowRight className="h-6 w-6 text-[#2443B0] ml-2 -rotate-45" />
+                    </div>
+                  )}
+                </div>
+              ))}
+            </div>
+          </div>
+          <div className="mt-40 flex justify-center z-30">
+            <Link href="/register" className="inline-flex items-center justify-center px-6 py-3.5 bg-[#D7FE44] text-[#1a1a1a] rounded-full font-bold text-base hover:bg-[#c4ea3d] transition-all transform hover:scale-105 active:scale-95 shadow-xl">
+              Jelajahi Semua Course!
+            </Link>
+            <button className="h-12 w-12 flex items-center justify-center bg-[#D7FE44] text-[#1a1a1a] rounded-full font-bold hover:bg-[#c4ea3d] transition-all transform hover:scale-105 active:scale-95 shadow-xl ml-[-1px]">
+              <ArrowRight className="h-5 w-5 -rotate-45" />
+            </button>
+          </div>
+        </div>
+      </section>
+
       {/* Why Us Section */}
       <section className="py-24 bg-slate-50/50">
         <div className="container max-w-7xl mx-auto px-4">
@@ -125,7 +257,7 @@ export default function Landing() {
               Mengapa Kami?
             </div>
             <h2 className="text-3xl md:text-4xl font-semibold tracking-tight text-slate-900 leading-tight">
-              Dirancang untuk Membantu Anda Belajar<br className="hidden md:block" />Lebih Baik, Lebih Cepat, & Lebih Cerdas.
+              Dirancang untuk Membantu Anda Belajar<br className="hidden md:block" />Lebih Baik, Lebih Cepat, & Lebih Cerdas 🤓.
             </h2>
             <p className="text-slate-500 max-w-2xl mx-auto text-base leading-relaxed">
               Kami tidak hanya mengajar. Kami memberdayakan—dengan konten yang relevan di industri, panduan pribadi, dan alat untuk mengubah pembelajaran menjadi tindakan nyata.
@@ -144,7 +276,7 @@ export default function Landing() {
                     Bergabunglah dengan komunitas global yang berkembang—lebih dari 100.000 pelajar dan 500+ kisah sukses.
                   </p>
                 </div>
-                <button className="flex items-center gap-2 px-6 py-2.5 bg-[#D7FE44] text-[#1a1a1a] rounded-full font-semibold text-sm hover:scale-105 transition-transform mt-4">
+                <button className="flex items-center gap-2 px-5 py-2.5 bg-[#D7FE44] text-[#1a1a1a] rounded-full font-semibold text-sm hover:scale-105 transition-transform mt-4">
                   Jelajahi Kursus <ChevronRight className="h-4 w-4" />
                 </button>
               </div>
