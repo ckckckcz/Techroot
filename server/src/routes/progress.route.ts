@@ -1,464 +1,151 @@
-import { Router, Request, Response } from 'express';
-import jwt from 'jsonwebtoken';
+import { Router, Response } from 'express';
 import { supabase } from '../lib/supabase';
+import { authenticateToken, AuthRequest } from '../middleware/auth';
 
-const router = Router();
+const router: Router = Router();
+const now = () => new Date().toISOString();
+const today = () => now().split('T')[0];
 
-// Middleware to verify JWT token
-const authenticateToken = (req: Request, res: Response, next: Function) => {
-    const authHeader = req.headers['authorization'];
-    const token = authHeader && authHeader.split(' ')[1];
-
-    if (!token) {
-        return res.status(401).json({ success: false, message: 'Token required' });
-    }
-
-    jwt.verify(token, process.env.JWT_SECRET || 'techroot-secret-key-change-in-production', (err: any, user: any) => {
-        if (err) {
-            console.error('JWT verification error:', err);
-            return res.status(403).json({ success: false, message: 'Invalid token' });
-        }
-        (req as any).user = user;
-        next();
-    });
+const upsertProgress = async (userId: string, data: Record<string, any>, isInsert: boolean) => {
+    const timestamp = { updated_at: now(), ...(isInsert && { created_at: now() }) };
+    return isInsert
+        ? supabase.from('user_progress').insert({ user_id: userId, completed_lessons: [], completed_modules: [], ...data, ...timestamp }).select().single()
+        : supabase.from('user_progress').update({ ...data, ...timestamp }).eq('user_id', userId).select().single();
 };
 
-// GET /api/progress - Get user's learning progress
-router.get('/', authenticateToken, async (req: Request, res: Response) => {
+const getProgress = async (userId: string) => {
+    const { data, error } = await supabase.from('user_progress').select('*').eq('user_id', userId).single();
+    return { data, notFound: error?.code === 'PGRST116', error };
+};
+
+const updateXP = async (userId: string, amount: number) => {
+    if (amount <= 0) return;
+    const { data } = await supabase.from('users').select('xp').eq('id', userId).single();
+    await supabase.from('users').update({ xp: (data?.xp || 0) + amount }).eq('id', userId);
+};
+
+router.get('/', authenticateToken, async (req: AuthRequest, res: Response) => {
     try {
-        const userId = (req as any).user.userId;
-        console.log('Getting progress for user:', userId);
+        const userId = req.user!.userId;
+        const { data: progress, notFound, error } = await getProgress(userId);
 
-        // Get progress from user_progress table
-        const { data: progressData, error: progressError } = await supabase
-            .from('user_progress')
-            .select('*')
-            .eq('user_id', userId)
-            .single();
+        if (notFound) return res.json({ success: true, data: { completed_lessons: [], completed_modules: [], current_path: null, current_module: null, current_lesson: null, xp: 0, streak: 0, badges: [] } });
+        if (error) throw error;
 
-        // If no progress exists, create initial progress
-        if (progressError && progressError.code === 'PGRST116') {
-            console.log('No progress found for user, returning empty progress');
-            return res.json({
-                success: true,
-                data: {
-                    completed_lessons: [],
-                    completed_modules: [],
-                    current_path: null,
-                    current_module: null,
-                    current_lesson: null,
-                    xp: 0,
-                    streak: 0,
-                    badges: []
-                }
-            });
-        }
+        const { data: user } = await supabase.from('users').select('xp, streak, last_active_date').eq('id', userId).single();
 
-        if (progressError) {
-            console.error('Progress fetch error:', progressError);
-            throw progressError;
-        }
-
-        // Get user's XP and streak from users table
-        const { data: userData, error: userError } = await supabase
-            .from('users')
-            .select('xp, streak, last_active_date')
-            .eq('id', userId)
-            .single();
-
-        if (userError) {
-            console.error('User data fetch error:', userError);
-        }
-
-        // Get user's badges (skip if table doesn't exist)
         let badgesData: any[] = [];
         try {
-            const { data: badges } = await supabase
-                .from('user_badges')
-                .select('badge_id, badge_name, earned_at')
-                .eq('user_id', userId);
+            const { data: badges } = await supabase.from('user_badges').select('badge_id, badge_name, earned_at').eq('user_id', userId);
             badgesData = badges || [];
-        } catch (e) {
-            console.log('Badges table might not exist, skipping');
-        }
+        } catch { /* badges table might not exist */ }
 
         res.json({
             success: true,
             data: {
-                completed_lessons: progressData?.completed_lessons || [],
-                completed_modules: progressData?.completed_modules || [],
-                current_path: progressData?.current_path,
-                current_module: progressData?.current_module,
-                current_lesson: progressData?.current_lesson,
-                xp: userData?.xp || 0,
-                streak: userData?.streak || 0,
-                last_active_date: userData?.last_active_date,
-                badges: badgesData,
+                completed_lessons: progress?.completed_lessons || [],
+                completed_modules: progress?.completed_modules || [],
+                current_path: progress?.current_path,
+                current_module: progress?.current_module,
+                current_lesson: progress?.current_lesson,
+                xp: user?.xp || 0,
+                streak: user?.streak || 0,
+                last_active_date: user?.last_active_date,
+                badges: badgesData
             }
         });
     } catch (error) {
-        console.error('Get progress error:', error);
         res.status(500).json({ success: false, message: 'Failed to get progress', error: String(error) });
     }
 });
 
-// POST /api/progress/lesson - Mark a lesson as completed
-router.post('/lesson', authenticateToken, async (req: Request, res: Response) => {
+router.post('/lesson', authenticateToken, async (req: AuthRequest, res: Response) => {
     try {
-        const userId = (req as any).user.userId;
+        const userId = req.user!.userId;
         const { lesson_key, xp_reward } = req.body;
 
-        console.log('Completing lesson:', { userId, lesson_key, xp_reward });
+        if (!lesson_key) return res.status(400).json({ success: false, message: 'lesson_key is required' });
 
-        if (!lesson_key) {
-            return res.status(400).json({ success: false, message: 'lesson_key is required' });
+        const { data: progress, notFound } = await getProgress(userId);
+        const completedLessons: string[] = progress?.completed_lessons || [];
+
+        if (completedLessons.includes(lesson_key)) {
+            return res.json({ success: true, message: 'Lesson already completed', data: { completed_lessons: completedLessons, xp_added: 0 } });
         }
 
-        // Get current progress or create new one
-        const { data: currentProgress, error: getError } = await supabase
-            .from('user_progress')
-            .select('id, completed_lessons')
-            .eq('user_id', userId)
-            .single();
+        completedLessons.push(lesson_key);
+        await upsertProgress(userId, { completed_lessons: completedLessons }, notFound);
+        await updateXP(userId, xp_reward || 0);
 
-        let completedLessons: string[] = [];
-        let shouldInsert = false;
-
-        if (getError) {
-            if (getError.code === 'PGRST116') {
-                // No record exists, will insert new one
-                shouldInsert = true;
-                console.log('No existing progress, will create new record');
-            } else {
-                console.error('Error fetching progress:', getError);
-                throw getError;
-            }
-        } else if (currentProgress) {
-            completedLessons = currentProgress.completed_lessons || [];
-        }
-
-        // Add lesson if not already completed
-        if (!completedLessons.includes(lesson_key)) {
-            completedLessons.push(lesson_key);
-
-            if (shouldInsert) {
-                // Insert new progress record
-                const { data: insertData, error: insertError } = await supabase
-                    .from('user_progress')
-                    .insert({
-                        user_id: userId,
-                        completed_lessons: completedLessons,
-                        completed_modules: [],
-                        created_at: new Date().toISOString(),
-                        updated_at: new Date().toISOString(),
-                    })
-                    .select()
-                    .single();
-
-                if (insertError) {
-                    console.error('Insert progress error:', insertError);
-                    throw insertError;
-                }
-                console.log('Created new progress record:', insertData?.id);
-            } else {
-                // Update existing progress
-                const { error: updateError } = await supabase
-                    .from('user_progress')
-                    .update({
-                        completed_lessons: completedLessons,
-                        updated_at: new Date().toISOString(),
-                    })
-                    .eq('user_id', userId);
-
-                if (updateError) {
-                    console.error('Update progress error:', updateError);
-                    throw updateError;
-                }
-                console.log('Updated progress with completed lesson');
-            }
-
-            // Update user's XP if reward provided
-            if (xp_reward && xp_reward > 0) {
-                const { data: userData } = await supabase
-                    .from('users')
-                    .select('xp')
-                    .eq('id', userId)
-                    .single();
-
-                const newXP = (userData?.xp || 0) + xp_reward;
-                const { error: xpError } = await supabase
-                    .from('users')
-                    .update({ xp: newXP })
-                    .eq('id', userId);
-
-                if (xpError) {
-                    console.error('XP update error:', xpError);
-                } else {
-                    console.log('Updated XP to:', newXP);
-                }
-            }
-
-            res.json({
-                success: true,
-                message: 'Lesson completed',
-                data: { completed_lessons: completedLessons, xp_added: xp_reward || 0 }
-            });
-        } else {
-            res.json({
-                success: true,
-                message: 'Lesson already completed',
-                data: { completed_lessons: completedLessons, xp_added: 0 }
-            });
-        }
+        res.json({ success: true, message: 'Lesson completed', data: { completed_lessons: completedLessons, xp_added: xp_reward || 0 } });
     } catch (error) {
-        console.error('Complete lesson error:', error);
         res.status(500).json({ success: false, message: 'Failed to complete lesson', error: String(error) });
     }
 });
 
-// POST /api/progress/module - Mark a module as completed
-router.post('/module', authenticateToken, async (req: Request, res: Response) => {
+router.post('/module', authenticateToken, async (req: AuthRequest, res: Response) => {
     try {
-        const userId = (req as any).user.userId;
+        const userId = req.user!.userId;
         const { module_key, xp_reward } = req.body;
 
-        console.log('Completing module:', { userId, module_key, xp_reward });
+        if (!module_key) return res.status(400).json({ success: false, message: 'module_key is required' });
 
-        if (!module_key) {
-            return res.status(400).json({ success: false, message: 'module_key is required' });
+        const { data: progress, notFound } = await getProgress(userId);
+        const completedModules: string[] = progress?.completed_modules || [];
+
+        if (completedModules.includes(module_key)) {
+            return res.json({ success: true, message: 'Module already completed', data: { completed_modules: completedModules, xp_added: 0 } });
         }
 
-        // Get current progress
-        const { data: currentProgress, error: getError } = await supabase
-            .from('user_progress')
-            .select('id, completed_modules')
-            .eq('user_id', userId)
-            .single();
+        completedModules.push(module_key);
+        await upsertProgress(userId, { completed_modules: completedModules }, notFound);
+        await updateXP(userId, xp_reward || 0);
 
-        let completedModules: string[] = [];
-        let shouldInsert = false;
-
-        if (getError) {
-            if (getError.code === 'PGRST116') {
-                shouldInsert = true;
-            } else {
-                throw getError;
-            }
-        } else if (currentProgress) {
-            completedModules = currentProgress.completed_modules || [];
-        }
-
-        // Add module if not already completed
-        if (!completedModules.includes(module_key)) {
-            completedModules.push(module_key);
-
-            if (shouldInsert) {
-                const { error: insertError } = await supabase
-                    .from('user_progress')
-                    .insert({
-                        user_id: userId,
-                        completed_lessons: [],
-                        completed_modules: completedModules,
-                        created_at: new Date().toISOString(),
-                        updated_at: new Date().toISOString(),
-                    });
-
-                if (insertError) throw insertError;
-            } else {
-                const { error: updateError } = await supabase
-                    .from('user_progress')
-                    .update({
-                        completed_modules: completedModules,
-                        updated_at: new Date().toISOString(),
-                    })
-                    .eq('user_id', userId);
-
-                if (updateError) throw updateError;
-            }
-
-            // Update XP
-            if (xp_reward && xp_reward > 0) {
-                const { data: userData } = await supabase
-                    .from('users')
-                    .select('xp')
-                    .eq('id', userId)
-                    .single();
-
-                await supabase
-                    .from('users')
-                    .update({ xp: (userData?.xp || 0) + xp_reward })
-                    .eq('id', userId);
-            }
-
-            res.json({
-                success: true,
-                message: 'Module completed',
-                data: { completed_modules: completedModules, xp_added: xp_reward || 0 }
-            });
-        } else {
-            res.json({
-                success: true,
-                message: 'Module already completed',
-                data: { completed_modules: completedModules, xp_added: 0 }
-            });
-        }
+        res.json({ success: true, message: 'Module completed', data: { completed_modules: completedModules, xp_added: xp_reward || 0 } });
     } catch (error) {
-        console.error('Complete module error:', error);
         res.status(500).json({ success: false, message: 'Failed to complete module', error: String(error) });
     }
 });
 
-// PUT /api/progress/current - Update current learning position
-router.put('/current', authenticateToken, async (req: Request, res: Response) => {
+router.put('/current', authenticateToken, async (req: AuthRequest, res: Response) => {
     try {
-        const userId = (req as any).user.userId;
+        const userId = req.user!.userId;
         const { current_path, current_module, current_lesson } = req.body;
+        const { notFound } = await getProgress(userId);
 
-        console.log('Updating current position:', { userId, current_path, current_module, current_lesson });
-
-        // Check if progress exists
-        const { data: existingProgress, error: checkError } = await supabase
-            .from('user_progress')
-            .select('id')
-            .eq('user_id', userId)
-            .single();
-
-        if (checkError && checkError.code === 'PGRST116') {
-            // Insert new record
-            const { data, error } = await supabase
-                .from('user_progress')
-                .insert({
-                    user_id: userId,
-                    completed_lessons: [],
-                    completed_modules: [],
-                    current_path: current_path || null,
-                    current_module: current_module || null,
-                    current_lesson: current_lesson || null,
-                    created_at: new Date().toISOString(),
-                    updated_at: new Date().toISOString(),
-                })
-                .select()
-                .single();
-
-            if (error) throw error;
-
-            return res.json({
-                success: true,
-                message: 'Current position created',
-                data
-            });
-        }
-
-        // Update existing record
-        const { data, error } = await supabase
-            .from('user_progress')
-            .update({
-                current_path: current_path || null,
-                current_module: current_module || null,
-                current_lesson: current_lesson || null,
-                updated_at: new Date().toISOString(),
-            })
-            .eq('user_id', userId)
-            .select()
-            .single();
-
+        const { data, error } = await upsertProgress(userId, { current_path: current_path || null, current_module: current_module || null, current_lesson: current_lesson || null }, notFound);
         if (error) throw error;
 
-        res.json({
-            success: true,
-            message: 'Current position updated',
-            data
-        });
+        res.json({ success: true, message: notFound ? 'Current position created' : 'Current position updated', data });
     } catch (error) {
-        console.error('Update current position error:', error);
         res.status(500).json({ success: false, message: 'Failed to update current position', error: String(error) });
     }
 });
 
-// POST /api/progress/sync - Sync all progress data
-router.post('/sync', authenticateToken, async (req: Request, res: Response) => {
+router.post('/sync', authenticateToken, async (req: AuthRequest, res: Response) => {
     try {
-        const userId = (req as any).user.userId;
-        const {
-            completed_lessons,
-            completed_modules,
-            current_path,
-            current_module,
-            current_lesson,
-            xp,
-            streak
-        } = req.body;
+        const userId = req.user!.userId;
+        const { completed_lessons, completed_modules, current_path, current_module, current_lesson, xp, streak } = req.body;
 
-        console.log('Syncing progress for user:', userId);
-
-        // Update user's XP and streak
         if (xp !== undefined || streak !== undefined) {
-            const updateData: any = {
-                last_active_date: new Date().toISOString().split('T')[0]
-            };
+            const updateData: Record<string, any> = { last_active_date: today() };
             if (xp !== undefined) updateData.xp = xp;
             if (streak !== undefined) updateData.streak = streak;
-
-            await supabase
-                .from('users')
-                .update(updateData)
-                .eq('id', userId);
+            await supabase.from('users').update(updateData).eq('id', userId);
         }
 
-        // Check if progress exists
-        const { data: existingProgress, error: checkError } = await supabase
-            .from('user_progress')
-            .select('id')
-            .eq('user_id', userId)
-            .single();
+        const { notFound } = await getProgress(userId);
+        const { data, error } = await upsertProgress(userId, {
+            completed_lessons: completed_lessons || [],
+            completed_modules: completed_modules || [],
+            current_path: current_path || null,
+            current_module: current_module || null,
+            current_lesson: current_lesson || null
+        }, notFound);
 
-        let data;
-        if (checkError && checkError.code === 'PGRST116') {
-            // Insert new
-            const { data: insertData, error: insertError } = await supabase
-                .from('user_progress')
-                .insert({
-                    user_id: userId,
-                    completed_lessons: completed_lessons || [],
-                    completed_modules: completed_modules || [],
-                    current_path: current_path || null,
-                    current_module: current_module || null,
-                    current_lesson: current_lesson || null,
-                    created_at: new Date().toISOString(),
-                    updated_at: new Date().toISOString(),
-                })
-                .select()
-                .single();
-
-            if (insertError) throw insertError;
-            data = insertData;
-        } else {
-            // Update existing
-            const { data: updateData, error: updateError } = await supabase
-                .from('user_progress')
-                .update({
-                    completed_lessons: completed_lessons || [],
-                    completed_modules: completed_modules || [],
-                    current_path: current_path || null,
-                    current_module: current_module || null,
-                    current_lesson: current_lesson || null,
-                    updated_at: new Date().toISOString(),
-                })
-                .eq('user_id', userId)
-                .select()
-                .single();
-
-            if (updateError) throw updateError;
-            data = updateData;
-        }
-
-        res.json({
-            success: true,
-            message: 'Progress synced successfully',
-            data
-        });
+        if (error) throw error;
+        res.json({ success: true, message: 'Progress synced successfully', data });
     } catch (error) {
-        console.error('Sync progress error:', error);
         res.status(500).json({ success: false, message: 'Failed to sync progress', error: String(error) });
     }
 });
