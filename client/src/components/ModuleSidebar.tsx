@@ -176,7 +176,7 @@ export const ModuleSidebar: React.FC<ModuleSidebarProps> = ({
         </TabsContent>
 
         <TabsContent value="forum" className="flex-1 h-full m-0 overflow-hidden flex flex-col">
-          <DiscussionForum />
+          <DiscussionForum moduleId={module.id} />
         </TabsContent>
       </Tabs>
     </div>

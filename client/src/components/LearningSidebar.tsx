@@ -12,6 +12,8 @@ import {
 } from "@/components/ui/tooltip";
 
 interface LearningSidebarProps {
+  pathTitle: string;
+  pathId: string;
   activeTab: 'materi' | 'tanya-root';
   onTabChange: (tab: 'materi' | 'tanya-root') => void;
 }
@@ -22,6 +24,8 @@ const sidebarItems = [
 ];
 
 export function LearningSidebar({
+  pathTitle,
+  pathId,
   activeTab,
   onTabChange,
 }: LearningSidebarProps) {

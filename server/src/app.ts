@@ -4,6 +4,7 @@ import healthRoute from './routes/health.route';
 import authRoute from './routes/auth.route';
 import progressRoute from './routes/progress.route';
 import aiRoute from './routes/ai.route';
+import discussionRoute from './routes/discussion.route';
 
 export const app: Application = express();
 
@@ -23,6 +24,7 @@ app.use('/health', healthRoute);
 app.use('/api/auth', authRoute);
 app.use('/api/progress', progressRoute);
 app.use('/api/ai', aiRoute);
+app.use('/api/discussions', discussionRoute);
 
 
 app.get('/', (req, res) => {

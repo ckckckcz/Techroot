@@ -1,10 +1,11 @@
 "use client";
 
 import React, { useState, useRef, useEffect } from "react";
-import { Send, Image as ImageIcon, X, User as UserIcon, MoreHorizontal, Paperclip } from "lucide-react";
+import { Send, Image as ImageIcon, X, User as UserIcon, MoreHorizontal, Loader2 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useUser } from "@/context/UserContext";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import { supabase } from "@/lib/supabase";
 
 interface Message {
     id: string;
@@ -15,71 +16,153 @@ interface Message {
     };
     content: string;
     images?: string[];
-    timestamp: Date;
-    isMe: boolean;
+    timestamp: string | Date;
+    isMe?: boolean;
 }
 
-const INITIAL_MESSAGES: Message[] = [
-    {
-        id: "1",
-        sender: { id: "2", name: "Sarah Connor", avatar: "https://api.dicebear.com/7.x/avataaars/svg?seed=Sarah" },
-        content: "Halo semua! Ada yang sudah paham bagian 'Advanced Hook' belum? Agak bingung di pengaplikasiannya.",
-        timestamp: new Date(Date.now() - 3600000 * 2),
-        isMe: false,
-    },
-    {
-        id: "2",
-        sender: { id: "3", name: "Budi Santoso", avatar: "https://api.dicebear.com/7.x/avataaars/svg?seed=Budi" },
-        content: "Gw juga sempet bingung, tapi coba cek gambar arsitektur ini, mungkin ngebantu.",
-        images: ["https://images.unsplash.com/photo-1633356122544-f134324a6cee?q=80&w=1470&auto=format&fit=crop"],
-        timestamp: new Date(Date.now() - 3600000 * 1.5),
-        isMe: false,
-    },
-    {
-        id: "3",
-        sender: { id: "4", name: "Anita Wijaya", avatar: "https://api.dicebear.com/7.x/avataaars/svg?seed=Anita" },
-        content: "Wah makasih banyak mas Budi! Membantu banget gambarnya.",
-        timestamp: new Date(Date.now() - 3600000),
-        isMe: false,
-    },
-];
+interface DiscussionForumProps {
+    moduleId: string;
+}
 
-export const DiscussionForum = () => {
+const API_URL = (process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000').replace(/\/$/, '');
+
+export const DiscussionForum = ({ moduleId }: DiscussionForumProps) => {
     const { user } = useUser();
-    const [messages, setMessages] = useState<Message[]>(INITIAL_MESSAGES);
+    const [messages, setMessages] = useState<Message[]>([]);
     const [inputValue, setInputValue] = useState("");
     const [selectedImages, setSelectedImages] = useState<File[]>([]);
-    const [isUploading, setIsUploading] = useState(false);
+    const [isLoading, setIsLoading] = useState(true);
+    const [isSending, setIsSending] = useState(false);
 
     const scrollRef = useRef<HTMLDivElement>(null);
     const fileInputRef = useRef<HTMLInputElement>(null);
 
+    // Fetch messages on mount
+    useEffect(() => {
+        const fetchMessages = async () => {
+            try {
+                setIsLoading(true);
+                const response = await fetch(`${API_URL}/api/discussions/${moduleId}`);
+                const data = await response.json();
+
+                if (data.success && data.data) {
+                    setMessages(data.data);
+                }
+            } catch (error) {
+                console.error('Failed to fetch messages:', error);
+            } finally {
+                setIsLoading(false);
+            }
+        };
+
+        if (moduleId) {
+            fetchMessages();
+        }
+    }, [moduleId]);
+
+    // Realtime subscription for new messages
+    useEffect(() => {
+        if (!moduleId) return;
+
+        // Subscribe to INSERT events on module_discussions table
+        const channel = supabase
+            .channel(`module_discussions:${moduleId}`)
+            .on(
+                'postgres_changes',
+                {
+                    event: 'INSERT',
+                    schema: 'public',
+                    table: 'module_discussions',
+                    filter: `module_id=eq.${moduleId}`
+                },
+                async (payload) => {
+                    console.log('New message received:', payload);
+
+                    // Fetch user data for the new message
+                    const { data: userData, error } = await supabase
+                        .from('users')
+                        .select('id, name, avatar')
+                        .eq('id', payload.new.user_id)
+                        .single();
+
+                    if (!error && userData) {
+                        const newMessage: Message = {
+                            id: payload.new.id,
+                            sender: {
+                                id: userData.id,
+                                name: userData.name,
+                                avatar: userData.avatar
+                            },
+                            content: payload.new.content,
+                            images: payload.new.images || [],
+                            timestamp: payload.new.created_at
+                        };
+
+                        // Only add if not already in list (prevent duplicates)
+                        setMessages(prev => {
+                            const exists = prev.some(msg => msg.id === newMessage.id);
+                            if (exists) return prev;
+                            return [...prev, newMessage];
+                        });
+                    }
+                }
+            )
+            .subscribe();
+
+        // Cleanup subscription on unmount
+        return () => {
+            supabase.removeChannel(channel);
+        };
+    }, [moduleId]);
+
+    // Auto scroll to bottom when messages update
     useEffect(() => {
         if (scrollRef.current) {
             scrollRef.current.scrollTop = scrollRef.current.scrollHeight;
         }
     }, [messages]);
 
-    const handleSendMessage = (e: React.FormEvent) => {
+    const handleSendMessage = async (e: React.FormEvent) => {
         e.preventDefault();
         if (!inputValue.trim() && selectedImages.length === 0) return;
+        if (!user) return;
 
-        const newMessage: Message = {
-            id: Date.now().toString(),
-            sender: {
-                id: user?.id || "me",
-                name: user?.name || "Anda",
-                avatar: user?.avatar,
-            },
-            content: inputValue,
-            images: selectedImages.map(file => URL.createObjectURL(file)),
-            timestamp: new Date(),
-            isMe: true,
-        };
+        try {
+            setIsSending(true);
 
-        setMessages([...messages, newMessage]);
-        setInputValue("");
-        setSelectedImages([]);
+            // TODO: Upload images to storage first (for now, we'll skip image upload)
+            const imageUrls: string[] = [];
+
+            const token = localStorage.getItem('Techroot_token');
+            const response = await fetch(`${API_URL}/api/discussions/${moduleId}`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Authorization': `Bearer ${token}`
+                },
+                body: JSON.stringify({
+                    content: inputValue,
+                    images: imageUrls
+                })
+            });
+
+            const data = await response.json();
+
+            if (data.success && data.data) {
+                // Add new message to local state
+                setMessages(prev => [...prev, data.data]);
+                setInputValue("");
+                setSelectedImages([]);
+            } else {
+                console.error('Failed to send message:', data.message);
+                alert('Gagal mengirim pesan: ' + data.message);
+            }
+        } catch (error) {
+            console.error('Send message error:', error);
+            alert('Gagal mengirim pesan. Pastikan Anda sudah login.');
+        } finally {
+            setIsSending(false);
+        }
     };
 
     const handleImageSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -111,57 +194,80 @@ export const DiscussionForum = () => {
                 ref={scrollRef}
                 className="absolute top-[57px] bottom-[180px] left-0 right-0 overflow-y-auto p-4 space-y-6 scrollbar-thin scrollbar-thumb-slate-200"
             >
-                {messages.map((msg) => (
-                    <div
-                        key={msg.id}
-                        className={cn(
-                            "flex gap-3 animate-in fade-in slide-in-from-bottom-2 duration-300",
-                            msg.isMe ? "flex-row-reverse" : "flex-row"
-                        )}
-                    >
-                        <Avatar className="h-8 w-8 shrink-0 border border-slate-100 shadow-sm mt-0.5">
-                            <AvatarImage src={msg.sender.avatar} />
-                            <AvatarFallback><UserIcon className="h-4 w-4" /></AvatarFallback>
-                        </Avatar>
-
-                        <div className={cn(
-                            "flex flex-col max-w-[80%]",
-                            msg.isMe ? "items-end" : "items-start"
-                        )}>
-                            <div className="flex items-center gap-2 mb-1 px-1">
-                                <span className="text-[11px] font-bold text-slate-700">{msg.sender.name}</span>
-                                <span className="text-[9px] text-slate-400">
-                                    {msg.timestamp.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
-                                </span>
-                            </div>
-
-                            <div className={cn(
-                                "p-3 rounded-2xl shadow-sm text-sm leading-relaxed",
-                                msg.isMe
-                                    ? "bg-[#2443B0] text-white rounded-tr-none"
-                                    : "bg-white border border-slate-100 text-slate-800 rounded-tl-none"
-                            )}>
-                                {msg.content && <p className="whitespace-pre-wrap">{msg.content}</p>}
-
-                                {msg.images && msg.images.length > 0 && (
-                                    <div className={cn(
-                                        "grid gap-2 mt-2",
-                                        msg.images.length > 1 ? "grid-cols-2" : "grid-cols-1"
-                                    )}>
-                                        {msg.images.map((img, i) => (
-                                            <img
-                                                key={i}
-                                                src={img}
-                                                alt="Shared"
-                                                className="rounded-lg object-cover w-full max-h-48 border border-white/20 shadow-sm"
-                                            />
-                                        ))}
-                                    </div>
-                                )}
-                            </div>
-                        </div>
+                {isLoading ? (
+                    <div className="flex items-center justify-center h-full">
+                        <Loader2 className="h-6 w-6 animate-spin text-slate-400" />
                     </div>
-                ))}
+                ) : messages.length === 0 ? (
+                    <div className="flex flex-col items-center justify-center h-full text-center">
+                        <div className="w-16 h-16 rounded-full bg-slate-100 flex items-center justify-center mb-3">
+                            <UserIcon className="h-8 w-8 text-slate-300" />
+                        </div>
+                        <p className="text-sm text-slate-500 font-medium">Belum ada pesan</p>
+                        <p className="text-xs text-slate-400 mt-1">Mulai diskusi dengan mengirim pesan pertama!</p>
+                    </div>
+                ) : (
+                    messages.map((msg) => {
+                        const isMe = user?.id === msg.sender.id;
+                        const timestamp = typeof msg.timestamp === 'string'
+                            ? new Date(msg.timestamp)
+                            : msg.timestamp;
+
+                        return (
+                            <div
+                                key={msg.id}
+                                className={cn(
+                                    "flex gap-3 animate-in fade-in slide-in-from-bottom-2 duration-300",
+                                    isMe ? "flex-row-reverse" : "flex-row"
+                                )}
+                            >
+                                <Avatar className="h-8 w-8 shrink-0 border border-slate-100 shadow-sm mt-0.5">
+                                    <AvatarImage src={msg.sender.avatar} />
+                                    <AvatarFallback><UserIcon className="h-4 w-4" /></AvatarFallback>
+                                </Avatar>
+
+                                <div className={cn(
+                                    "flex flex-col max-w-[80%]",
+                                    isMe ? "items-end" : "items-start"
+                                )}>
+                                    <div className="flex items-center gap-2 mb-1 px-1">
+                                        <span className="text-[11px] font-bold text-slate-700">{msg.sender.name}</span>
+                                        <span className="text-[9px] text-slate-400">
+                                            {timestamp instanceof Date
+                                                ? timestamp.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
+                                                : ''}
+                                        </span>
+                                    </div>
+
+                                    <div className={cn(
+                                        "p-3 rounded-lg shadow-sm text-sm leading-relaxed",
+                                        isMe
+                                            ? "bg-[#2443B0] text-white rounded-tr-none"
+                                            : "bg-white border border-slate-100 text-slate-800 rounded-tl-none"
+                                    )}>
+                                        {msg.content && <p className="whitespace-pre-wrap">{msg.content}</p>}
+
+                                        {msg.images && msg.images.length > 0 && (
+                                            <div className={cn(
+                                                "grid gap-2 mt-2",
+                                                msg.images.length > 1 ? "grid-cols-2" : "grid-cols-1"
+                                            )}>
+                                                {msg.images.map((img, i) => (
+                                                    <img
+                                                        key={i}
+                                                        src={img}
+                                                        alt="Shared"
+                                                        className="rounded-lg object-cover w-full max-h-48 border border-white/20 shadow-sm"
+                                                    />
+                                                ))}
+                                            </div>
+                                        )}
+                                    </div>
+                                </div>
+                            </div>
+                        );
+                    })
+                )}
             </div>
 
             {/* Input Area (Fixed Bottom) */}
