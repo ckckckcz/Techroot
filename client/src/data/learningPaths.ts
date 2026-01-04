@@ -1,45 +1,6 @@
-export interface TestCase {
-  input: string;
-  expected: string;
-  description: string;
-}
+import { TestCase, ContentType, Lesson, Section, Module, LearningPath } from '@/types';
 
-export type ContentType = 'material' | 'video' | 'quiz';
-
-export interface Lesson {
-  id: string;
-  title: string;
-  type: ContentType;
-  isFree?: boolean;
-  content?: string;
-  videoUrl?: string;
-  starterCode?: string;
-  testCases?: TestCase[];
-  xpReward: number;
-}
-
-export interface Section {
-  id: string;
-  title: string;
-  lessons: Lesson[];
-}
-
-export interface Module {
-  id: string;
-  title: string;
-  description: string;
-  level: 'beginner' | 'intermediate' | 'advanced';
-  xpReward: number;
-  sections: Section[];
-}
-
-export interface LearningPath {
-  id: string;
-  title: string;
-  description: string;
-  icon: string;
-  modules: Module[];
-}
+export type { TestCase, ContentType, Lesson, Section, Module, LearningPath };
 
 export const learningPaths: LearningPath[] = [
   {
@@ -785,94 +746,31 @@ header.classList.add("active");
 ];
 
 // Helper functions
-export const getPathById = (pathId: string): LearningPath | undefined => {
-  return learningPaths.find(p => p.id === pathId);
-};
+export const getPathById = (pathId: string) => learningPaths.find(p => p.id === pathId);
 
-export const getModuleById = (pathId: string, moduleId: string): Module | undefined => {
-  const path = getPathById(pathId);
-  return path?.modules.find(m => m.id === moduleId);
-};
+export const getModuleById = (pathId: string, moduleId: string) => getPathById(pathId)?.modules.find(m => m.id === moduleId);
 
-export const getLessonById = (pathId: string, moduleId: string, lessonId: string): Lesson | undefined => {
-  const module = getModuleById(pathId, moduleId);
-  for (const section of module?.sections || []) {
-    const lesson = section.lessons.find(l => l.id === lessonId);
-    if (lesson) return lesson;
-  }
-  return undefined;
-};
+export const getLessonById = (pathId: string, moduleId: string, lessonId: string) =>
+  getModuleById(pathId, moduleId)?.sections.flatMap(s => s.lessons).find(l => l.id === lessonId);
 
-export const getModuleProgress = (
-  moduleId: string,
-  completedLessons: string[]
-): { completed: number; total: number; percentage: number } => {
-  const path = learningPaths.find(p => p.modules.some(m => m.id === moduleId));
-  const module = path?.modules.find(m => m.id === moduleId);
-
+export const getModuleProgress = (moduleId: string, completedLessons: string[]) => {
+  const module = learningPaths.flatMap(p => p.modules).find(m => m.id === moduleId);
   if (!module) return { completed: 0, total: 0, percentage: 0 };
 
-  let total = 0;
-  let completed = 0;
-
-  for (const section of module.sections) {
-    for (const lesson of section.lessons) {
-      total++;
-      if (completedLessons.includes(`${moduleId}:${lesson.id}`)) {
-        completed++;
-      }
-    }
-  }
-
-  return {
-    completed,
-    total,
-    percentage: total > 0 ? Math.round((completed / total) * 100) : 0
-  };
+  const lessons = module.sections.flatMap(s => s.lessons);
+  const completed = lessons.filter(l => completedLessons.includes(`${moduleId}:${l.id}`)).length;
+  return { completed, total: lessons.length, percentage: lessons.length > 0 ? Math.round((completed / lessons.length) * 100) : 0 };
 };
 
-export const getNextLesson = (
-  pathId: string,
-  moduleId: string,
-  currentLessonId: string
-): { lesson: Lesson; sectionId: string } | null => {
-  const module = getModuleById(pathId, moduleId);
-  if (!module) return null;
-
-  let foundCurrent = false;
-
-  for (const section of module.sections) {
-    for (const lesson of section.lessons) {
-      if (foundCurrent) {
-        return { lesson, sectionId: section.id };
-      }
-      if (lesson.id === currentLessonId) {
-        foundCurrent = true;
-      }
-    }
-  }
-
-  return null;
+export const getNextLesson = (pathId: string, moduleId: string, currentLessonId: string) => {
+  const allLessons = getModuleById(pathId, moduleId)?.sections.flatMap(s => s.lessons.map(l => ({ lesson: l, sectionId: s.id }))) || [];
+  const idx = allLessons.findIndex(l => l.lesson.id === currentLessonId);
+  return idx >= 0 && idx < allLessons.length - 1 ? allLessons[idx + 1] : null;
 };
 
-export const getPrevLesson = (
-  pathId: string,
-  moduleId: string,
-  currentLessonId: string
-): { lesson: Lesson; sectionId: string } | null => {
-  const module = getModuleById(pathId, moduleId);
-  if (!module) return null;
-
-  let prevLesson: { lesson: Lesson; sectionId: string } | null = null;
-
-  for (const section of module.sections) {
-    for (const lesson of section.lessons) {
-      if (lesson.id === currentLessonId) {
-        return prevLesson;
-      }
-      prevLesson = { lesson, sectionId: section.id };
-    }
-  }
-
-  return null;
+export const getPrevLesson = (pathId: string, moduleId: string, currentLessonId: string) => {
+  const allLessons = getModuleById(pathId, moduleId)?.sections.flatMap(s => s.lessons.map(l => ({ lesson: l, sectionId: s.id }))) || [];
+  const idx = allLessons.findIndex(l => l.lesson.id === currentLessonId);
+  return idx > 0 ? allLessons[idx - 1] : null;
 };
+
