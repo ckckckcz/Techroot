@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useCallback, useRef } from "react";
+import React, { useState, useCallback } from "react";
 import { Button } from "@/components/ui/button";
 import {
   Play,
@@ -90,8 +90,7 @@ export default function CodePlayground({
   const [isRunning, setIsRunning] = useState(false);
   const [testResults, setTestResults] = useState<{ passed: boolean; message: string }[]>([]);
   const [activeTab, setActiveTab] = useState("output");
-
-  const iframeRef = useRef<HTMLIFrameElement>(null);
+  const [htmlPreview, setHtmlPreview] = useState<string>("");
   const { toast } = useToast();
 
   const activeLang = languageConfigs.find(l => l.id === language);
@@ -129,18 +128,15 @@ export default function CodePlayground({
     }
   }
 
-  // Render HTML in iframe
+  // Render HTML in iframe using srcdoc (avoids cross-origin issues)
   function executeHTML(): ExecutionResult {
-    if (iframeRef.current) {
-      const doc = iframeRef.current.contentDocument || iframeRef.current.contentWindow?.document;
-      if (doc) {
-        doc.open();
-        doc.write(code);
-        doc.close();
-        return { output: "HTML rendered in preview tab.", error: null, success: true };
-      }
+    try {
+      setHtmlPreview(code);
+      return { output: "HTML rendered in preview tab.", error: null, success: true };
+    } catch (err) {
+      const error = err instanceof Error ? err.message : "Failed to render HTML";
+      return { output: "", error, success: false };
     }
-    return { output: "", error: "Failed to render HTML", success: false };
   }
 
   // Java execution placeholder
@@ -403,9 +399,9 @@ export default function CodePlayground({
                 {/* HTML Preview */}
                 <TabsContent value="preview" className="h-full m-0 bg-white">
                   <iframe
-                    ref={iframeRef}
                     title="HTML Preview"
                     className="w-full h-full border-none"
+                    srcDoc={htmlPreview}
                     sandbox="allow-scripts"
                   />
                 </TabsContent>
