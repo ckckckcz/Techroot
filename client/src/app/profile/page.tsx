@@ -1,6 +1,6 @@
 "use client"
 
-import { useEffect, useState } from "react"
+import { useEffect, useState, useCallback } from "react"
 import Image from "next/image"
 import { useRouter } from "next/navigation"
 import {
@@ -19,6 +19,10 @@ import {
     Award,
     Star,
     Crown,
+    User as UserIcon,
+    School,
+    Camera,
+    Loader2,
 } from "lucide-react"
 import { useUser } from "@/context/UserContext"
 import { Header } from "@/components/layout/Header"
@@ -28,12 +32,41 @@ import { getInitials } from "@/lib/helpers"
 import { Button } from "@/components/ui/button"
 import { Progress } from "@/components/ui/progress"
 import { Skeleton } from "@/components/ui/skeleton"
+import { cn } from "@/lib/utils"
+import {
+    Dialog,
+    DialogContent,
+    DialogDescription,
+    DialogHeader,
+    DialogTitle,
+} from "@/components/ui/dialog"
+import {
+    Sheet,
+    SheetContent,
+    SheetDescription,
+    SheetHeader,
+    SheetTitle,
+} from "@/components/ui/sheet"
+import { Input } from "@/components/ui/input"
+import { Label } from "@/components/ui/label"
+import { useToast } from "@/hooks/use-toast"
 
 export default function ProfilePage() {
     const router = useRouter()
-    const { user: contextUser, xp, level, streak, badges, logout, isAuthenticated, isLoading: authLoading, progress } = useUser()
+    const { user: contextUser, xp, level, streak, badges, logout, isAuthenticated, isLoading: authLoading, progress, updateUser } = useUser()
     const [dbUser, setDbUser] = useState<User | null>(null)
     const [loading, setLoading] = useState(true)
+    const [isEditModalOpen, setIsEditModalOpen] = useState(false)
+    const [isMobile, setIsMobile] = useState(false)
+    const { toast } = useToast()
+
+    // Handle Responsive Check
+    useEffect(() => {
+        const checkMobile = () => setIsMobile(window.innerWidth < 1024)
+        checkMobile()
+        window.addEventListener("resize", checkMobile)
+        return () => window.removeEventListener("resize", checkMobile)
+    }, [])
 
     useEffect(() => {
         if (!authLoading && !isAuthenticated) {
@@ -66,11 +99,11 @@ export default function ProfilePage() {
                 <Header />
                 <div className="container max-w-6xl mx-auto px-4 py-32 space-y-8">
                     <Skeleton className="h-64 md:h-96 w-full rounded-3xl" />
-                    <div className="grid lg:grid-cols-12 gap-8">
-                        <div className="lg:col-span-4 space-y-6">
+                    <div className="grid lg:grid-cols-12 gap-8 lg:items-stretch items-start">
+                        <div className="lg:col-span-4 flex flex-col gap-6 w-full">
                             <Skeleton className="h-80 w-full rounded-3xl" />
                         </div>
-                        <div className="lg:col-span-8 space-y-8">
+                        <div className="lg:col-span-8 w-full">
                             <Skeleton className="h-80 w-full rounded-3xl" />
                         </div>
                     </div>
@@ -81,6 +114,139 @@ export default function ProfilePage() {
 
     const user = dbUser || contextUser
     if (!user) return null
+
+    const AVATAR_OPTIONS = [
+        "https://api.dicebear.com/9.x/thumbs/svg?seed=Alexander",
+        "https://api.dicebear.com/9.x/thumbs/svg?seed=Aidan",
+        "https://api.dicebear.com/9.x/thumbs/svg?seed=Jameson",
+        "https://api.dicebear.com/9.x/thumbs/svg?seed=Andrea",
+        "https://api.dicebear.com/9.x/thumbs/svg?seed=Nolan",
+        "https://api.dicebear.com/9.x/thumbs/svg?seed=Emery",
+        "https://api.dicebear.com/9.x/thumbs/svg?seed=Sara",
+        "https://api.dicebear.com/9.x/thumbs/svg?seed=Amaya",
+    ]
+
+    const EditProfileForm = ({ onUpdateSuccess }: { onUpdateSuccess: () => void }) => {
+        const [formData, setFormData] = useState({
+            name: user.name,
+            institution: user.institution || "",
+            avatar: user.avatar || AVATAR_OPTIONS[0],
+        })
+        const [isSubmitting, setIsSubmitting] = useState(false)
+
+        const handleSubmit = async (e: React.FormEvent) => {
+            e.preventDefault()
+            setIsSubmitting(true)
+            try {
+                const response = await api<{ success: boolean; message: string; data: { user: User } }>("/api/auth/update", {
+                    method: "PUT",
+                    body: formData,
+                })
+
+                if (response.success) {
+                    updateUser(response.data.user)
+                    setDbUser(response.data.user)
+                    toast({
+                        title: "Berhasil!",
+                        description: "Profil Anda telah diperbarui.",
+                    })
+                    onUpdateSuccess()
+                } else {
+                    toast({
+                        variant: "destructive",
+                        title: "Gagal",
+                        description: response.message || "Gagal memperbarui profil.",
+                    })
+                }
+            } catch (error) {
+                toast({
+                    variant: "destructive",
+                    title: "Kesalahan",
+                    description: "Terjadi kesalahan sistem.",
+                })
+            } finally {
+                setIsSubmitting(false)
+            }
+        }
+
+        return (
+            <form onSubmit={handleSubmit} className="space-y-8 pt-4">
+                {/* Avatar Selection */}
+                <div className="space-y-4">
+                    <Label className="text-sm font-black uppercase tracking-widest text-slate-400">Pilih Avatar</Label>
+                    <div className="grid grid-cols-4 gap-4">
+                        {AVATAR_OPTIONS.map((avatarUrl, idx) => (
+                            <button
+                                key={idx}
+                                type="button"
+                                onClick={() => setFormData({ ...formData, avatar: avatarUrl })}
+                                className={cn(
+                                    "relative aspect-square rounded-2xl overflow-hidden border-4 transition-all hover:scale-105",
+                                    formData.avatar === avatarUrl
+                                        ? "border-[#2443B0] bg-blue-50 shadow-lg shadow-[#2443B0]/10"
+                                        : "border-transparent bg-slate-50 hover:border-slate-200"
+                                )}
+                            >
+                                <img
+                                    src={avatarUrl}
+                                    alt={`Avatar ${idx}`}
+                                    className="w-full h-full object-cover p-1"
+                                />
+                                {formData.avatar === avatarUrl && (
+                                    <div className="absolute inset-0 bg-[#2443B0]/10 flex items-center justify-center">
+                                        <div className="bg-[#2443B0] text-white rounded-full p-1">
+                                            <ShieldCheck className="w-3 h-3" />
+                                        </div>
+                                    </div>
+                                )}
+                            </button>
+                        ))}
+                    </div>
+                </div>
+
+                <div className="space-y-4">
+                    <div className="space-y-2">
+                        <Label htmlFor="name" className="text-sm font-black uppercase tracking-widest text-slate-400">Nama Lengkap</Label>
+                        <div className="relative">
+                            <UserIcon className="absolute left-4 top-1/2 -translate-y-1/2 h-5 w-5 text-slate-400" />
+                            <Input
+                                id="name"
+                                value={formData.name}
+                                onChange={(e) => setFormData({ ...formData, name: e.target.value })}
+                                className="pl-12 h-14 rounded-2xl border-2 border-slate-100 focus:border-[#2443B0] focus:ring-0 transition-all font-bold"
+                                placeholder="Masukkan nama Anda"
+                                required
+                            />
+                        </div>
+                    </div>
+                    <div className="space-y-2">
+                        <Label htmlFor="institution" className="text-sm font-black uppercase tracking-widest text-slate-400">Institusi / Universitas</Label>
+                        <div className="relative">
+                            <School className="absolute left-4 top-1/2 -translate-y-1/2 h-5 w-5 text-slate-400" />
+                            <Input
+                                id="institution"
+                                value={formData.institution}
+                                onChange={(e) => setFormData({ ...formData, institution: e.target.value })}
+                                className="pl-12 h-14 rounded-2xl border-2 border-slate-100 focus:border-[#2443B0] focus:ring-0 transition-all font-bold"
+                                placeholder="Nama Sekolah atau Universitas"
+                            />
+                        </div>
+                    </div>
+                </div>
+
+                <div className="pt-2">
+                    <Button
+                        type="submit"
+                        disabled={isSubmitting}
+                        className="w-full h-14 rounded-2xl bg-[#2443B0] hover:bg-[#1a36a9] text-white font-black shadow-xl shadow-[#2443B0]/20 transition-all gap-3"
+                    >
+                        {isSubmitting ? <Loader2 className="h-5 w-5 animate-spin" /> : <ShieldCheck className="h-5 w-5" />}
+                        Simpan Perubahan
+                    </Button>
+                </div>
+            </form>
+        )
+    }
 
     return (
         <div className="min-h-screen bg-[#FDFDFF] text-slate-900 selection:bg-[#2443B0]/10 selection:text-[#2443B0]">
@@ -104,19 +270,25 @@ export default function ProfilePage() {
 
                             {/* Avatar */}
                             <div className="relative z-10 mb-6">
-                                <div className="h-32 w-32 sm:h-40 sm:w-40 md:h-48 md:w-48 rounded-3xl bg-white p-2 shadow-2xl ring-8 ring-white/10 transition-all duration-700 hover:scale-105 group">
+                                <div className="h-32 w-32 sm:h-40 sm:w-40 md:h-48 md:w-48 rounded-3xl bg-white p-2 shadow-2xl ring-8 ring-white/10 transition-all duration-700 hover:scale-105 group relative">
                                     <div className="h-full w-full rounded-2xl overflow-hidden relative bg-slate-50 flex items-center justify-center border border-slate-100 italic transition-transform group-hover:rotate-2">
                                         {user.avatar ? (
-                                            <Image src={user.avatar || "/placeholder.svg"} alt={user.name} fill className="object-cover" />
+                                            <img src={user.avatar} alt={user.name} className="w-full h-full object-cover" />
                                         ) : (
                                             <span className="text-4xl sm:text-6xl md:text-8xl font-black text-[#2443B0] tracking-tighter drop-shadow-sm">
                                                 {getInitials(user.name)}
                                             </span>
                                         )}
                                     </div>
-                                    <div className="absolute -bottom-4 -right-4 h-12 w-12 rounded-2xl bg-[#D7FE44] border-4 border-white flex items-center justify-center text-[#1a1a1a] shadow-xl animate-bounce-slow">
+                                    <div className="absolute -bottom-4 -right-4 h-12 w-12 rounded-2xl bg-[#D7FE44] border-4 border-white flex items-center justify-center text-[#1a1a1a] shadow-xl animate-bounce-slow z-20">
                                         <Crown className="w-6 h-6" />
                                     </div>
+                                    <button
+                                        onClick={() => setIsEditModalOpen(true)}
+                                        className="absolute inset-0 z-10 bg-black/40 opacity-0 group-hover:opacity-100 rounded-2xl transition-opacity flex items-center justify-center text-white"
+                                    >
+                                        <Camera className="w-8 h-8" />
+                                    </button>
                                 </div>
                             </div>
 
@@ -202,7 +374,10 @@ export default function ProfilePage() {
                                     </div>
 
                                     <div className="mt-auto pt-4 flex flex-col gap-4">
-                                        <Button className="w-full rounded-2xl h-14 font-black bg-[#2443B0] hover:bg-[#1a36a9] text-white shadow-xl shadow-[#2443B0]/20 transition-all border-none gap-3">
+                                        <Button
+                                            onClick={() => setIsEditModalOpen(true)}
+                                            className="w-full rounded-2xl h-14 font-black bg-[#2443B0] hover:bg-[#1a36a9] text-white shadow-xl shadow-[#2443B0]/20 transition-all border-none gap-3"
+                                        >
                                             <Settings className="h-5 w-5" /> Edit Profil
                                         </Button>
                                         <Button
@@ -222,7 +397,7 @@ export default function ProfilePage() {
                             <div className="bg-white rounded-3xl border-2 border-slate-100 shadow-2xl p-8 sm:p-12 md:p-16 relative overflow-hidden group/mastery h-full">
                                 <div className="absolute top-0 right-0 w-96 h-96 bg-[#2443B0]/5 rounded-full blur-[120px] -mr-32 -mt-32 group-hover/mastery:bg-[#2443B0]/10 transition-all duration-1000" />
 
-                                <div className="relative z-10 space-y-12">
+                                <div className="relative z-10 space-y-12 flex flex-col h-full">
                                     <div className="flex flex-col sm:flex-row lg:items-center justify-between gap-10">
                                         <div className="space-y-5">
                                             <div className="inline-flex items-center px-5 py-2 rounded-full bg-blue-50 text-[#2443B0] text-xs font-black uppercase tracking-[0.3em] border border-blue-100">
@@ -241,7 +416,7 @@ export default function ProfilePage() {
                                         </div>
                                     </div>
 
-                                    {/* Progress Section - Refined based on image */}
+                                    {/* Progress Section */}
                                     <div className="space-y-8">
                                         <div className="flex flex-col sm:flex-row justify-between sm:items-end gap-6">
                                             <div className="flex items-center gap-5">
@@ -270,7 +445,7 @@ export default function ProfilePage() {
                                     </div>
 
                                     {/* Stats Summary */}
-                                    <div className="grid grid-cols-2 md:grid-cols-4 gap-4 md:gap-6 pt-6">
+                                    <div className="grid grid-cols-2 md:grid-cols-4 gap-4 md:gap-6 pt-6 mt-auto">
                                         {[
                                             { icon: BookOpen, label: "Courses", val: progress?.completedModules?.length || 0, color: "text-blue-500" },
                                             { icon: Zap, label: "Lessons", val: progress?.completedLessons?.length || 0, color: "text-yellow-500" },
@@ -290,6 +465,32 @@ export default function ProfilePage() {
                     </div>
                 </div>
             </main>
+
+            {/* Desktop Edit Modal */}
+            <Dialog open={!isMobile && isEditModalOpen} onOpenChange={setIsEditModalOpen}>
+                <DialogContent className="sm:max-w-[500px] border-none shadow-2xl rounded-[2.5rem] p-8">
+                    <DialogHeader className="space-y-3 pb-4">
+                        <DialogTitle className="text-3xl font-black tracking-tight text-[#2443B0]">Edit Profil</DialogTitle>
+                        <DialogDescription className="text-slate-500 font-bold">
+                            Perbarui informasi profil Anda untuk pengalaman belajar yang lebih personal.
+                        </DialogDescription>
+                    </DialogHeader>
+                    <EditProfileForm onUpdateSuccess={() => setIsEditModalOpen(false)} />
+                </DialogContent>
+            </Dialog>
+
+            {/* Mobile/Tablet Bottom Sheet */}
+            <Sheet open={isMobile && isEditModalOpen} onOpenChange={setIsEditModalOpen}>
+                <SheetContent side="bottom" className="rounded-t-[3rem] border-none shadow-2xl p-8 pb-12 focus:outline-none">
+                    <SheetHeader className="space-y-2 pb-4 text-left">
+                        <SheetTitle className="text-3xl font-black tracking-tight text-[#2443B0]">Edit Profil</SheetTitle>
+                        <SheetDescription className="text-slate-500 font-bold">
+                            Perbarui informasi profil Anda di sini.
+                        </SheetDescription>
+                    </SheetHeader>
+                    <EditProfileForm onUpdateSuccess={() => setIsEditModalOpen(false)} />
+                </SheetContent>
+            </Sheet>
         </div>
     )
 }

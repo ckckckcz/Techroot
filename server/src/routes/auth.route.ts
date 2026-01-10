@@ -68,4 +68,29 @@ router.get('/me', authenticateToken, async (req: AuthRequest, res: Response) => 
     }
 });
 
+router.put('/update', authenticateToken, async (req: AuthRequest, res: Response) => {
+    try {
+        const { name, institution, avatar } = req.body;
+        const userId = req.user!.userId;
+
+        const updateData: any = {};
+        if (name) updateData.name = name;
+        if (institution !== undefined) updateData.institution = institution;
+        if (avatar) updateData.avatar = avatar;
+
+        const { data: updatedUser, error } = await supabase
+            .from('users')
+            .update(updateData)
+            .eq('id', userId)
+            .select('id, name, email, institution, avatar, xp, streak')
+            .single();
+
+        if (error) return res.status(500).json({ success: false, message: 'Gagal memperbarui profil', error: error.message });
+
+        res.json({ success: true, message: 'Profil berhasil diperbarui', data: { user: updatedUser } });
+    } catch (error: any) {
+        res.status(500).json({ success: false, message: 'Terjadi kesalahan server', error: error.message });
+    }
+});
+
 export default router;

@@ -22,6 +22,7 @@ interface UserContextType {
   completeModule: (pathId: string, moduleId: string, xpReward?: number) => Promise<void>;
   setCurrentPosition: (pathId: string, moduleId: string, lessonId?: string) => void;
   syncProgress: () => Promise<void>;
+  updateUser: (data: Partial<User>) => void;
 }
 
 const UserContext = createContext<UserContextType | undefined>(undefined);
@@ -149,6 +150,10 @@ export const UserProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     api('/api/progress/current', { method: 'PUT', body: { current_path: pathId, current_module: moduleId, current_lesson: lessonId } }).catch(() => { });
   }, []);
 
+  const updateUser = useCallback((u: Partial<User>) => {
+    setUser(prev => prev ? { ...prev, ...u } : null);
+  }, []);
+
   const syncProgress = useCallback(async () => {
     if (!user) return;
     try {
@@ -167,7 +172,7 @@ export const UserProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
   }, [user, progress, xp, streak]);
 
   return (
-    <UserContext.Provider value={{ user, xp, level: calculateLevel(xp), streak, lastActiveDate, progress, badges, isAuthenticated: !!user, isLoading, login, register, logout, addXP, completeLesson, completeModule, setCurrentPosition, syncProgress }}>
+    <UserContext.Provider value={{ user, xp, level: calculateLevel(xp), streak, lastActiveDate, progress, badges, isAuthenticated: !!user, isLoading, login, register, logout, addXP, completeLesson, completeModule, setCurrentPosition, syncProgress, updateUser }}>
       {children}
     </UserContext.Provider>
   );
