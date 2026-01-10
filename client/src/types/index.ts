@@ -1,9 +1,11 @@
-// ==================== USER TYPES ====================
 export interface User {
     id: string;
     email: string;
     name: string;
     avatar?: string;
+    institution?: string;
+    xp?: number;
+    streak?: number;
 }
 
 export interface Badge {
@@ -83,6 +85,8 @@ export interface ChatMessage {
 export interface Category {
     id: string;
     title: string;
+    description: string;
+    icon: string;
     count: string;
     images: string[];
 }

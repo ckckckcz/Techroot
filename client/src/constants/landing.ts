@@ -4,6 +4,8 @@ export const CATEGORIES: Category[] = [
     {
         id: 'design',
         title: 'Design & Creativity',
+        description: 'Eksplorasi UI/UX, desain grafis, hingga identitas visual yang memukau dunia digital.',
+        icon: 'Layout',
         count: '639+',
         images: [
             'https://images.unsplash.com/photo-1558655146-d09347e92766?q=80&w=400&auto=format&fit=crop',
@@ -15,6 +17,8 @@ export const CATEGORIES: Category[] = [
     {
         id: 'tech',
         title: 'Tech & Programming',
+        description: 'Bangun sistem masa depan dengan Full-stack development, AI, dan Cloud computing.',
+        icon: 'Code2',
         count: '261+',
         images: [
             'https://images.unsplash.com/photo-1498050108023-c5249f4df085?q=80&w=400&auto=format&fit=crop',
@@ -26,6 +30,8 @@ export const CATEGORIES: Category[] = [
     {
         id: 'business',
         title: 'Business & Marketing',
+        description: 'Strategi tajam untuk membangun bisnis digital dan menguasai pasar melalui data analytics.',
+        icon: 'Globe',
         count: '1,529+',
         images: [
             'https://images.unsplash.com/photo-1460925895917-afdab827c52f?q=80&w=400&auto=format&fit=crop',
@@ -34,28 +40,6 @@ export const CATEGORIES: Category[] = [
             'https://images.unsplash.com/photo-1454165833772-d99628a5ffad?q=80&w=400&auto=format&fit=crop'
         ]
     },
-    {
-        id: 'photography',
-        title: 'Photography & Visual Arts',
-        count: '975+',
-        images: [
-            'https://images.unsplash.com/photo-1542038784456-1ea8e935640e?q=80&w=400&auto=format&fit=crop',
-            'https://images.unsplash.com/photo-1493723843671-1d655e7d9742?q=80&w=400&auto=format&fit=crop',
-            'https://images.unsplash.com/photo-1516035069371-29a1b244cc32?q=80&w=400&auto=format&fit=crop',
-            'https://images.unsplash.com/photo-1470770841072-f978cf4d019e?q=80&w=400&auto=format&fit=crop'
-        ]
-    },
-    {
-        id: 'personal',
-        title: 'Personal Development',
-        count: '820+',
-        images: [
-            'https://images.unsplash.com/photo-1506126613408-eca07ce68773?q=80&w=400&auto=format&fit=crop',
-            'https://images.unsplash.com/photo-1517486808906-6ca8b3f04846?q=80&w=400&auto=format&fit=crop',
-            'https://images.unsplash.com/photo-1522202176988-66273c2fd55f?q=80&w=400&auto=format&fit=crop',
-            'https://images.unsplash.com/photo-1516321318423-f06f85e504b3?q=80&w=400&auto=format&fit=crop'
-        ]
-    }
 ];
 
 export const TESTIMONIALS: Testimonial[] = [
