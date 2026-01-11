@@ -1,7 +1,7 @@
 "use client";
 import React, { createContext, useContext, useState, useEffect, useCallback, ReactNode } from 'react';
 import { User, Badge, Progress } from '@/types';
-import { api, storage } from '@/lib/api';
+import { api, storage, API_URL } from '@/lib/api';
 import { calculateLevel, toDateString } from '@/lib/helpers';
 
 interface GitHubLoginResult {
@@ -220,7 +220,7 @@ export const UserProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
   useEffect(() => {
     const handleUnload = () => {
       if (user && storage.get('token')) {
-        navigator.sendBeacon('/api/progress/sync', new Blob([JSON.stringify({ completed_lessons: progress.completedLessons, completed_modules: progress.completedModules, current_path: progress.currentPath, current_module: progress.currentModule, current_lesson: progress.currentLesson, xp, streak })], { type: 'application/json' }));
+        navigator.sendBeacon(`${API_URL}/api/progress/sync`, new Blob([JSON.stringify({ completed_lessons: progress.completedLessons, completed_modules: progress.completedModules, current_path: progress.currentPath, current_module: progress.currentModule, current_lesson: progress.currentLesson, xp, streak })], { type: 'application/json' }));
       }
     };
     window.addEventListener('beforeunload', handleUnload);

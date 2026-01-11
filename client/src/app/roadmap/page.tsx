@@ -130,8 +130,8 @@ Berikan roadmap yang komprehensif, urut secara logis dari dasar ke advanced.`;
         const prompt = generatePrompt();
 
         try {
-            const apiUrl = (process.env.NEXT_PUBLIC_API_URL || "http://localhost:5000").replace(/\/$/, "");
-            const endpoint = `${apiUrl}/api/ai/chat`;
+            const apiUrl = process.env.NEXT_PUBLIC_API_URL || "https://backend-techroot.vercel.app";
+            const endpoint = `${apiUrl.replace(/\/$/, "")}/api/ai/chat`;
 
             const response = await fetch(endpoint, {
                 method: "POST",
@@ -184,8 +184,8 @@ Berikan roadmap yang komprehensif, urut secara logis dari dasar ke advanced.`;
         setTutorLoading(true);
 
         try {
-            const apiUrl = (process.env.NEXT_PUBLIC_API_URL || "http://localhost:5000").replace(/\/$/, "");
-            const endpoint = `${apiUrl}/api/ai/chat`;
+            const apiUrl = process.env.NEXT_PUBLIC_API_URL || "https://backend-techroot.vercel.app";
+            const endpoint = `${apiUrl.replace(/\/$/, "")}/api/ai/chat`;
 
             const prompt = `Kamu adalah AI Tutor khusus untuk topik: "${selectedTopic.title}".
       
