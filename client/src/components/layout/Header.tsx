@@ -73,28 +73,87 @@ const UserDropdown = ({ user, xp, level, streak, onLogout }: { user: any; xp: nu
     </DropdownMenu>
 );
 
-const MobileMenu = ({ isOpen, isAuthenticated, xp, streak, onClose, onLogout }: { isOpen: boolean; isAuthenticated: boolean; xp: number; streak: number; onClose: () => void; onLogout: () => void }) => {
+const MobileMenu = ({ isOpen, isAuthenticated, user, xp, level, streak, onClose, onLogout }: { isOpen: boolean; isAuthenticated: boolean; user: any; xp: number; level: number; streak: number; onClose: () => void; onLogout: () => void }) => {
     if (!isOpen) return null;
 
     return (
         <div className="md:hidden border-t border-border bg-background/95 backdrop-blur-xl rounded-b-2xl">
             <nav className="container max-w-7xl mx-auto py-4 px-4 flex flex-col gap-4">
-                {NAV_LINKS.map(link => (
-                    <Link key={link.href} href={link.href} onClick={onClose} className="text-sm text-muted-foreground hover:text-foreground transition-colors">{link.label}</Link>
-                ))}
-                {isAuthenticated ? (
-                    <>
-                        <Link href="/dashboard" onClick={onClose} className="text-sm text-muted-foreground hover:text-foreground transition-colors">Dashboard</Link>
-                        <div className="flex items-center gap-4 py-2 border-t border-border text-sm">
-                            <div className="flex items-center gap-1.5 text-muted-foreground"><Zap className="h-4 w-4" /><span className="font-medium">{xp} XP</span></div>
-                            {streak > 0 && <div className="flex items-center gap-1.5 text-muted-foreground"><Flame className="h-4 w-4" /><span className="font-medium">{streak} hari streak</span></div>}
+                {/* User Profile Section - Only show when authenticated */}
+                {isAuthenticated && user && (
+                    <div className="pb-4 border-b border-border">
+                        <div className="flex items-center gap-3 mb-3">
+                            <Avatar className="h-12 w-12 ring-2 ring-primary/20">
+                                <AvatarImage src={user?.avatar} alt={user?.name || "User"} />
+                                <AvatarFallback className="bg-gradient-to-br from-primary to-primary/60 text-primary-foreground text-sm font-semibold">
+                                    {getInitials(user?.name)}
+                                </AvatarFallback>
+                            </Avatar>
+                            <div className="flex-1 min-w-0">
+                                <p className="font-semibold text-sm truncate">{user?.name || "User"}</p>
+                                <p className="text-xs text-muted-foreground truncate">{user?.email || "user@example.com"}</p>
+                            </div>
                         </div>
-                        <Button variant="ghost" size="sm" onClick={onLogout} className="w-fit">Keluar</Button>
-                    </>
+
+                        {/* Stats */}
+                        <div className="flex items-center gap-2">
+                            <div className="flex-1 flex items-center justify-center gap-1.5 px-3 py-2 rounded-lg bg-primary/10 text-primary">
+                                <Zap className="h-3.5 w-3.5" />
+                                <span className="font-semibold text-xs">{xp}</span>
+                                <span className="text-xs opacity-70">XP</span>
+                            </div>
+                            <div className="flex-1 flex items-center justify-center gap-1.5 px-3 py-2 rounded-lg bg-muted">
+                                <span className="font-semibold text-xs">Lv.{level}</span>
+                            </div>
+                            {streak > 0 && (
+                                <div className="flex-1 flex items-center justify-center gap-1.5 px-3 py-2 rounded-lg bg-orange-500/10 text-orange-500">
+                                    <Flame className="h-3.5 w-3.5" />
+                                    <span className="font-semibold text-xs">{streak}</span>
+                                </div>
+                            )}
+                        </div>
+
+                        {/* Profile Actions */}
+                        <div className="flex gap-2 mt-3">
+                            <Button variant="outline" size="sm" asChild className="flex-1">
+                                <Link href="/profile" onClick={onClose}>
+                                    <User className="h-4 w-4 mr-2" />
+                                    Profil
+                                </Link>
+                            </Button>
+                            <Button variant="outline" size="sm" asChild className="flex-1">
+                                <Link href="/dashboard" onClick={onClose}>
+                                    <LayoutDashboard className="h-4 w-4 mr-2" />
+                                    Dashboard
+                                </Link>
+                            </Button>
+                        </div>
+                    </div>
+                )}
+
+                {/* Navigation Links */}
+                {NAV_LINKS.map(link => (
+                    <Link key={link.href} href={link.href} onClick={onClose} className="text-sm text-muted-foreground hover:text-foreground transition-colors">
+                        {link.label}
+                    </Link>
+                ))}
+
+                {/* Auth Actions */}
+                {isAuthenticated ? (
+                    <div className="pt-2 border-t border-border">
+                        <Button variant="ghost" size="sm" onClick={onLogout} className="w-full justify-start text-destructive hover:text-destructive hover:bg-destructive/10">
+                            <LogOut className="h-4 w-4 mr-2" />
+                            Keluar
+                        </Button>
+                    </div>
                 ) : (
                     <div className="flex flex-col gap-2 pt-2 border-t border-border">
-                        <Button variant="ghost" size="sm" asChild><Link href="/login" onClick={onClose}>Masuk</Link></Button>
-                        <Button size="sm" asChild><Link href="/register" onClick={onClose}>Mulai Sekarang</Link></Button>
+                        <Button variant="ghost" size="sm" asChild>
+                            <Link href="/login" onClick={onClose}>Masuk</Link>
+                        </Button>
+                        <Button size="sm" asChild>
+                            <Link href="/register" onClick={onClose}>Mulai Sekarang</Link>
+                        </Button>
                     </div>
                 )}
             </nav>
@@ -138,7 +197,7 @@ export function Header() {
                 </button>
             </div>
 
-            <MobileMenu isOpen={mobileMenuOpen} isAuthenticated={isAuthenticated} xp={xp} streak={streak} onClose={() => setMobileMenuOpen(false)} onLogout={handleLogout} />
+            <MobileMenu isOpen={mobileMenuOpen} isAuthenticated={isAuthenticated} user={user} xp={xp} level={level} streak={streak} onClose={() => setMobileMenuOpen(false)} onLogout={handleLogout} />
         </header>
     );
 }
