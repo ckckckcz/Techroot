@@ -206,7 +206,10 @@ export default function ModuleDetail({
                                 />
                             </div>
                         ) : (
-                            <AIStarterPage />
+                            <AIStarterPage
+                                moduleTitle={module.title}
+                                lessonTitle={lesson.title}
+                            />
                         )}
                     </main>
 

@@ -4,7 +4,7 @@ import React, { useState, useRef, useEffect, KeyboardEvent, FormEvent } from "re
 import { ChevronDown, ArrowRight, Bot, Paperclip, Image as ImageIcon, X, FileText, User, Mic, Cpu } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { AIModel, ChatMessage } from "@/types";
-import { AI_MODELS, AVAILABLE_MODEL_IMAGES } from "@/constants/ai";
+import { AI_MODELS, AVAILABLE_MODEL_IMAGES, getSystemPrompt } from "@/constants/ai";
 import { api } from "@/lib/api";
 
 // ==================== SUB-COMPONENTS ====================
@@ -63,7 +63,10 @@ const WelcomeScreen = () => (
             <span className="block">Root Punya Jawaban.</span>
         </h1>
         <p className="text-slate-500 text-base sm:text-lg md:text-xl text-center max-w-lg px-4">
-            Tanyakan apapun tentang coding. Debug error. Minta contoh kode.
+            Tanyakan apapun tentang <strong className="text-slate-700">coding, pemrograman, dan teknologi</strong>. Debug error, minta contoh kode, atau penjelasan konsep.
+        </p>
+        <p className="text-slate-400 text-sm text-center mt-3 px-4">
+            <em>Root hanya menjawab pertanyaan seputar coding & teknologi</em>
         </p>
     </div>
 );
@@ -125,7 +128,12 @@ const ModelDropdown = ({ models, selected, onSelect, isOpen, onToggle }: { model
 );
 
 // ==================== MAIN COMPONENT ====================
-export const AIStarterPage = () => {
+interface AIStarterPageProps {
+    moduleTitle?: string;
+    lessonTitle?: string;
+}
+
+export const AIStarterPage = ({ moduleTitle, lessonTitle }: AIStarterPageProps) => {
     const [inputValue, setInputValue] = useState("");
     const [selectedModel, setSelectedModel] = useState(AI_MODELS[0]);
     const [showModelDropdown, setShowModelDropdown] = useState(false);
@@ -152,7 +160,14 @@ export const AIStarterPage = () => {
         setIsLoading(true);
 
         try {
-            const data = await api<{ success: boolean; data?: { reply: string }; message?: string }>('/api/ai/chat', { method: 'POST', body: { message, model: selectedModel.id } });
+            const systemPrompt = getSystemPrompt(moduleTitle, lessonTitle);
+            const data = await api<{ success: boolean; data?: { reply: string }; message?: string }>('/api/ai/chat', {
+                method: 'POST',
+                body: {
+                    message: `${systemPrompt}\n\nUser: ${message}`,
+                    model: selectedModel.id
+                }
+            });
             setMessages(prev => [...prev, { role: "assistant", content: data.success ? data.data!.reply : `Error: ${data.message}` }]);
         } catch {
             setMessages(prev => [...prev, { role: "assistant", content: "Maaf, terjadi kesalahan saat menghubungi AI." }]);

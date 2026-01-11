@@ -1,5 +1,4 @@
-// API Configuration
-export const API_URL = (process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000').replace(/\/+$/, '');
+export const API_URL = (process.env.NEXT_PUBLIC_API_URL || 'https://backend-techroot.vercel.app').replace(/\/+$/, '');
 
 // Auth helpers
 export const getToken = () => typeof window !== 'undefined' ? localStorage.getItem('Techroot_token') : null;
