@@ -4,6 +4,12 @@ import { User, Badge, Progress } from '@/types';
 import { api, storage } from '@/lib/api';
 import { calculateLevel, toDateString } from '@/lib/helpers';
 
+interface GitHubLoginResult {
+  success: boolean;
+  message?: string;
+  isNewUser?: boolean;
+}
+
 interface UserContextType {
   user: User | null;
   xp: number;
@@ -23,6 +29,9 @@ interface UserContextType {
   setCurrentPosition: (pathId: string, moduleId: string, lessonId?: string) => void;
   syncProgress: () => Promise<void>;
   updateUser: (data: Partial<User>) => void;
+  // GitHub OAuth
+  initiateGitHubLogin: () => Promise<void>;
+  loginWithGitHub: (code: string) => Promise<GitHubLoginResult>;
 }
 
 const UserContext = createContext<UserContextType | undefined>(undefined);
@@ -161,6 +170,53 @@ export const UserProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     } catch { }
   }, [user, progress, xp, streak]);
 
+  // GitHub OAuth functions
+  const initiateGitHubLogin = useCallback(async () => {
+    try {
+      const data = await api<{ success: boolean; data: { url: string } }>('/api/auth/github');
+      if (data.success && data.data?.url) {
+        window.location.href = data.data.url;
+      }
+    } catch (error) {
+      console.error('Failed to initiate GitHub login:', error);
+    }
+  }, []);
+
+  const loginWithGitHub = useCallback(async (code: string): Promise<GitHubLoginResult> => {
+    setIsLoading(true);
+    try {
+      const data = await api<{ success: boolean; message?: string; data?: { user: User; token: string; isNewUser?: boolean } }>('/api/auth/github/callback', {
+        method: 'POST',
+        body: { code }
+      });
+
+      if (data.success && data.data) {
+        const { user: u, token, isNewUser } = data.data;
+        setUser(u);
+        storage.set('token', token);
+        storage.set('user', u);
+
+        if (isNewUser) {
+          setXP(0);
+          setStreak(1);
+          setLastActiveDate(toDateString());
+          setProgress(INITIAL_PROGRESS);
+          setBadges([]);
+        } else {
+          await fetchProgress();
+        }
+
+        return { success: true, isNewUser };
+      }
+
+      return { success: false, message: data.message || 'Login gagal' };
+    } catch (error) {
+      return { success: false, message: 'Terjadi kesalahan' };
+    } finally {
+      setIsLoading(false);
+    }
+  }, [fetchProgress]);
+
   useEffect(() => {
     const handleUnload = () => {
       if (user && storage.get('token')) {
@@ -172,7 +228,7 @@ export const UserProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
   }, [user, progress, xp, streak]);
 
   return (
-    <UserContext.Provider value={{ user, xp, level: calculateLevel(xp), streak, lastActiveDate, progress, badges, isAuthenticated: !!user, isLoading, login, register, logout, addXP, completeLesson, completeModule, setCurrentPosition, syncProgress, updateUser }}>
+    <UserContext.Provider value={{ user, xp, level: calculateLevel(xp), streak, lastActiveDate, progress, badges, isAuthenticated: !!user, isLoading, login, register, logout, addXP, completeLesson, completeModule, setCurrentPosition, syncProgress, updateUser, initiateGitHubLogin, loginWithGitHub }}>
       {children}
     </UserContext.Provider>
   );

@@ -16,9 +16,24 @@ export default function Login() {
     const [password, setPassword] = useState('');
     const [showPassword, setShowPassword] = useState(false);
     const [isLoading, setIsLoading] = useState(false);
-    const { login } = useUser();
+    const [isGitHubLoading, setIsGitHubLoading] = useState(false);
+    const { login, initiateGitHubLogin } = useUser();
     const router = useRouter();
     const { toast } = useToast();
+
+    const handleGitHubLogin = async () => {
+        setIsGitHubLoading(true);
+        try {
+            await initiateGitHubLogin();
+        } catch (error) {
+            toast({
+                title: 'Gagal',
+                description: 'Gagal memulai login GitHub.',
+                variant: 'destructive',
+            });
+            setIsGitHubLoading(false);
+        }
+    };
 
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
@@ -209,8 +224,10 @@ export default function Login() {
                             type="button"
                             variant="outline"
                             className="w-full h-14 border-slate-100 rounded-2xl font-bold text-slate-600 hover:bg-slate-50 transition-all flex items-center justify-center gap-2"
+                            onClick={handleGitHubLogin}
+                            disabled={isGitHubLoading || isLoading}
                         >
-                            <Github className="h-5 w-5" /> Sign in with GitHub
+                            {isGitHubLoading ? <Loader2 className="h-5 w-5 animate-spin" /> : <Github className="h-5 w-5" />} Masuk dengan GitHub
                         </Button>
 
                         <div className="text-center">

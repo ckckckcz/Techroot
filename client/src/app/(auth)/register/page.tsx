@@ -11,6 +11,26 @@ import { useUser } from '@/context/UserContext';
 import { useToast } from '@/hooks/use-toast';
 import { Loader2, ArrowRight, Github, Sparkles, Eye, EyeOff } from 'lucide-react';
 
+// Password strength calculation
+const getPasswordStrength = (password: string): { score: number; label: string; color: string } => {
+    let score = 0;
+
+    if (password.length >= 8) score++;
+    if (/[A-Z]/.test(password)) score++;
+    if (/[0-9]/.test(password)) score++;
+    if (/[^A-Za-z0-9]/.test(password)) score++;
+
+    const strengthLevels = [
+        { score: 0, label: 'Sangat Lemah', color: 'bg-slate-200' },
+        { score: 1, label: 'Lemah', color: 'bg-red-500' },
+        { score: 2, label: 'Cukup', color: 'bg-yellow-500' },
+        { score: 3, label: 'Kuat', color: 'bg-lime-500' },
+        { score: 4, label: 'Sangat Kuat', color: 'bg-emerald-500' },
+    ];
+
+    return strengthLevels[score];
+};
+
 export default function Register() {
     const [name, setName] = useState('');
     const [institution, setInstitution] = useState('');
@@ -18,9 +38,24 @@ export default function Register() {
     const [password, setPassword] = useState('');
     const [showPassword, setShowPassword] = useState(false);
     const [isLoading, setIsLoading] = useState(false);
-    const { register } = useUser();
+    const [isGitHubLoading, setIsGitHubLoading] = useState(false);
+    const { register, initiateGitHubLogin } = useUser();
     const router = useRouter();
     const { toast } = useToast();
+
+    const handleGitHubLogin = async () => {
+        setIsGitHubLoading(true);
+        try {
+            await initiateGitHubLogin();
+        } catch (error) {
+            toast({
+                title: 'Gagal',
+                description: 'Gagal memulai pendaftaran GitHub.',
+                variant: 'destructive',
+            });
+            setIsGitHubLoading(false);
+        }
+    };
 
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
@@ -207,10 +242,30 @@ export default function Register() {
                                     {showPassword ? <EyeOff className="h-5 w-5" /> : <Eye className="h-5 w-5" />}
                                 </div>
                             </div>
-                            <div className="flex justify-between pl-">
+                            <div className="flex justify-between items-center">
                                 <p className="text-[10px] font-bold text-blue-500 italic">Protected by Techroot-Sec</p>
-                                <div className="flex gap-1.5">
-                                    {[1, 2, 3, 4].map(i => <div key={i} className="h-1 w-5 rounded-full bg-emerald-500" />)}
+                                <div className="flex items-center gap-2">
+                                    <div className="flex gap-1">
+                                        {[1, 2, 3, 4].map(i => (
+                                            <div
+                                                key={i}
+                                                className={`h-1 w-5 rounded-full transition-all duration-300 ${i <= getPasswordStrength(password).score
+                                                    ? getPasswordStrength(password).color
+                                                    : 'bg-slate-200'
+                                                    }`}
+                                            />
+                                        ))}
+                                    </div>
+                                    {password.length > 0 && (
+                                        <span className={`text-[10px] font-bold transition-all duration-300 ${getPasswordStrength(password).score <= 1
+                                            ? 'text-red-500'
+                                            : getPasswordStrength(password).score === 2
+                                                ? 'text-yellow-600'
+                                                : 'text-emerald-600'
+                                            }`}>
+                                            {getPasswordStrength(password).label}
+                                        </span>
+                                    )}
                                 </div>
                             </div>
                         </div>
@@ -238,8 +293,10 @@ export default function Register() {
                             type="button"
                             variant="outline"
                             className="w-full h-14 border-slate-100 rounded-2xl font-bold text-slate-600 hover:bg-slate-50 transition-all flex items-center justify-center gap-2"
+                            onClick={handleGitHubLogin}
+                            disabled={isGitHubLoading || isLoading}
                         >
-                            <Github className="h-5 w-5" /> Daftar dengan GitHub
+                            {isGitHubLoading ? <Loader2 className="h-5 w-5 animate-spin" /> : <Github className="h-5 w-5" />} Daftar dengan GitHub
                         </Button>
 
                         <div className="text-center">

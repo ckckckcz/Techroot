@@ -5,6 +5,7 @@
 [![Tailwind](https://img.shields.io/badge/Tailwind_CSS-4-38B2AC?style=for-the-badge&logo=tailwind-css)](https://tailwindcss.com/)
 [![Express](https://img.shields.io/badge/Express-5-000000?style=for-the-badge&logo=express)](https://expressjs.com/)
 [![Supabase](https://img.shields.io/badge/Supabase-DB-3ECF8E?style=for-the-badge&logo=supabase)](https://supabase.com/)
+[![GitHub OAuth](https://img.shields.io/badge/GitHub-OAuth-181717?style=for-the-badge&logo=github)](https://docs.github.com/en/apps/oauth-apps)
 
 **Techroot** bukan sekadar platform belajar biasa. Ia adalah ekosistem pendidikan cerdas yang dirancang untuk menumbuhkan akar keahlian Anda di dunia teknologi dari dasar hingga mahir, didorong oleh kekuatan _Large Language Models_ (LLM) terkini.
 
@@ -32,6 +33,15 @@ Kelola identitas digital Anda dengan sistem profil yang cerdas:
 - **Mobile/Tablet**: _Standard-compliant bottom sheet_ (drawer) untuk aksesibilitas maksimal.
 - **Avatar Customization**: Integrasi dengan **DiceBear API (Thumbs collection)** untuk ribuan variasi karakter unik.
 
+### 🔐 GitHub OAuth Integration
+
+Login lebih cepat dan aman dengan integrasi **GitHub OAuth 2.0**:
+
+- **One-Click Login**: Masuk atau daftar hanya dengan satu klik menggunakan akun GitHub.
+- **Account Linking**: Akun email existing dapat dihubungkan dengan GitHub untuk kemudahan login.
+- **Secure Flow**: Implementasi OAuth 2.0 standard dengan PKCE-ready architecture.
+- **Auto Profile Sync**: Avatar dan nama dari GitHub otomatis tersinkronisasi.
+
 ---
 
 ## 🛠️ Arsitektur & Teknologi
@@ -49,9 +59,89 @@ Techroot dibangun dengan prinsip modernitas, performa tinggi, dan skalabilitas:
 
 - **Platform**: Node.js dengan [Express 5](https://expressjs.com/)
 - **Database**: [PostgreSQL (Supabase)](https://supabase.com/)
+- **Authentication**: JWT + GitHub OAuth 2.0
 - **AI Engines**: Deepseek R1, Google Gemma 3, Nvidia Nemotron.
 
 ---
+
+## ⚡ Quick Start & Setup
+
+### 1. Clone & Install
+
+```bash
+# Clone repository
+git clone https://github.com/NaufalPratomo/Techroot.git
+cd Techroot
+
+# Install dependencies
+cd client && pnpm install
+cd ../server && pnpm install
+```
+
+### 2. Environment Variables
+
+**Server (`server/.env`):**
+
+```env
+# Server
+PORT=5000
+
+# Supabase
+SUPABASE_URL=https://your-project.supabase.co
+SUPABASE_SERVICE_ROLE_KEY=your_service_role_key
+
+# JWT
+JWT_SECRET=your_super_secret_jwt_key_minimum_32_characters
+
+# GitHub OAuth (Optional - untuk login via GitHub)
+GITHUB_CLIENT_ID=your_github_client_id
+GITHUB_CLIENT_SECRET=your_github_client_secret
+
+# Frontend URL
+FRONTEND_URL=http://localhost:3000
+```
+
+**Client (`client/.env.local`):**
+
+```env
+NEXT_PUBLIC_API_URL=http://localhost:5000
+```
+
+### 3. Setup GitHub OAuth (Opsional)
+
+1. Buka [GitHub Developer Settings](https://github.com/settings/developers)
+2. Klik **"New OAuth App"**
+3. Isi form:
+   - **Application name**: `Techroot`
+   - **Homepage URL**: `http://localhost:3000`
+   - **Authorization callback URL**: `http://localhost:3000/auth/github/callback`
+4. Klik **"Register application"**
+5. Copy **Client ID** dan generate **Client Secret**
+6. Masukkan ke file `server/.env`
+
+### 4. Database Migration
+
+Jalankan migration di Supabase SQL Editor:
+
+```sql
+-- Jalankan file-file di folder server/supabase/migrations/ secara berurutan
+-- 001_create_users_table.sql
+-- 002_create_user_progress_table.sql
+-- 003_create_module_discussions_table.sql
+-- 004_add_github_oauth.sql
+```
+
+### 5. Run Development
+
+```bash
+# Terminal 1 - Server
+cd server && pnpm run dev
+
+# Terminal 2 - Client
+cd client && pnpm run dev
+```
+
+Aplikasi akan berjalan di `http://localhost:3000` 🚀
 
 ## 📂 Struktur Folder & Fungsi (Clean Architecture)
 
@@ -91,8 +181,16 @@ Aplikasi Techroot bekerja dengan sinkronisasi data real-time antara Client dan s
 
 ### 1. Siklus Autentikasi & Sesi
 
-- **Initial Load**: Saat aplikasi dibuka, Client memeriksa JWT di storage dan memanggil `/api/auth/me`.
-- **Persistence**: Server memvalidasi token melalui Middleware. Jika valid, data user dikirim ke Client dan disimpan di `UserContext` untuk menghindari "flicker" saat navigasi.
+- **Email/Password Login**: Autentikasi tradisional dengan JWT token.
+- **GitHub OAuth Flow**:
+  1. User klik "Masuk dengan GitHub" → Client request ke `/api/auth/github`
+  2. Server generate GitHub authorization URL → User redirect ke GitHub
+  3. User authorize di GitHub → Redirect ke `/auth/github/callback?code=xxx`
+  4. Client kirim code ke `/api/auth/github/callback`
+  5. Server exchange code → access token → fetch user data dari GitHub API
+  6. Server create/login user, return JWT token → User masuk ke dashboard
+- **Account Linking**: User dengan email yang sama dapat menghubungkan akun GitHub untuk login alternatif.
+- **Persistence**: JWT disimpan di localStorage dan divalidasi di setiap request.
 
 ### 2. Gamifikasi & Sinkronisasi Progress
 
