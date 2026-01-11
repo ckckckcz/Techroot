@@ -1,4 +1,4 @@
-import express, { Application, Request, Response } from 'express';
+import express, { Request, Response } from 'express';
 import cors from 'cors';
 import 'dotenv/config';
 
@@ -8,7 +8,7 @@ import authRoute from '../src/routes/auth.route';
 import progressRoute from '../src/routes/progress.route';
 import aiRoute from '../src/routes/ai.route';
 
-const app: Application = express();
+const app = express();
 
 // CORS Configuration - Allow all origins for development
 const corsOptions = {
@@ -20,7 +20,6 @@ const corsOptions = {
 
 // Middleware
 app.use(cors(corsOptions));
-
 app.use(express.json());
 
 // Routes
@@ -38,8 +37,8 @@ app.get('/', (req: Request, res: Response) => {
         endpoints: {
             health: '/health',
             auth: '/api/auth',
-            progress: '/api/progress'
-        }
+            progress: '/api/progress',
+        },
     });
 });
 

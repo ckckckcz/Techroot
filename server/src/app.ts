@@ -1,4 +1,4 @@
-import express, { Application } from 'express';
+import express from 'express';
 import cors from 'cors';
 import healthRoute from './routes/health.route';
 import authRoute from './routes/auth.route';
@@ -6,7 +6,7 @@ import progressRoute from './routes/progress.route';
 import aiRoute from './routes/ai.route';
 import discussionRoute from './routes/discussion.route';
 
-export const app: Application = express();
+export const app = express();
 
 app.use(cors({ origin: true, credentials: true, methods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH', 'OPTIONS'], allowedHeaders: ['Content-Type', 'Authorization', 'X-Requested-With', 'Accept', 'Origin'] }));
 app.use(express.json());
