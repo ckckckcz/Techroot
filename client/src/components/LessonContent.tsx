@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { Lesson } from '@/data/learningPaths';
 import CodePlayground from '@/components/CodePlayground';
 import { Button } from '@/components/ui/button';
-import { Play, CheckCircle, BookOpen, Video, FileQuestion } from 'lucide-react';
+import { Play, Check, BookOpen, Video, FileQuestion } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
 interface LessonContentProps {
@@ -211,7 +211,7 @@ const MaterialContent: React.FC<LessonContentProps> = ({ lesson, isCompleted, on
             disabled={!hasRead}
             className="gap-2 bg-[#2443B0] hover:bg-[#1e3895] text-white rounded-full px-6"
           >
-            <CheckCircle className="h-4 w-4" />
+            <Check className="h-4 w-4" />
             {hasRead ? 'Tandai Selesai' : 'Membaca...'}
           </Button>
           {!hasRead && (
@@ -266,7 +266,7 @@ const VideoContent: React.FC<LessonContentProps> = ({ lesson, isCompleted, onCom
             }}
             className="gap-2 bg-[#2443B0] hover:bg-[#1e3895] text-white rounded-full px-6"
           >
-            <CheckCircle className="h-4 w-4" />
+            <Check className="h-4 w-4" />
             Selesai Menonton
           </Button>
         </div>
