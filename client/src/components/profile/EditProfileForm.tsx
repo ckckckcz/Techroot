@@ -1,7 +1,7 @@
 "use client"
 
 import { useState } from "react"
-import { ShieldCheck, Loader2 } from "lucide-react"
+import { Check, Loader2 } from "lucide-react"
 import { api } from "@/lib/api"
 import { Button } from "@/components/ui/button"
 import { useToast } from "@/hooks/use-toast"
@@ -134,7 +134,7 @@ export const EditProfileForm = ({ user, onUpdateSuccess, onClose, isMobile = fal
                         {isSubmitting ? (
                             <Loader2 className="h-5 w-5 animate-spin" />
                         ) : (
-                            <ShieldCheck className="h-5 w-5" />
+                            <Check className="h-5 w-5" />
                         )}
                         Simpan Perubahan
                     </Button>
@@ -184,7 +184,7 @@ export const EditProfileForm = ({ user, onUpdateSuccess, onClose, isMobile = fal
                     {isSubmitting ? (
                         <Loader2 className="h-5 w-5 animate-spin" />
                     ) : (
-                        <ShieldCheck className="h-5 w-5" />
+                        <Check className="h-5 w-5" />
                     )}
                     Simpan Perubahan
                 </Button>
