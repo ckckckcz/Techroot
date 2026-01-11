@@ -1,13 +1,14 @@
-import { Router } from 'express';
+import { Router, Request, Response } from 'express';
 import { supabase } from '../lib/supabase';
 import { env } from '../config/env';
 
 const router: Router = Router();
 
-router.get('/', async (_req, res) => {
+router.get('/', async (_req: Request, res: Response): Promise<void> => {
     try {
         if (!env.supabaseUrl || !env.supabaseServiceKey) {
-            return res.status(500).json({ status: 'error', message: 'Konfigurasi .env belum lengkap' });
+            res.status(500).json({ status: 'error', message: 'Konfigurasi .env belum lengkap' });
+            return;
         }
 
         const { error } = await supabase.from('_').select('*').limit(0);
@@ -23,8 +24,9 @@ router.get('/', async (_req, res) => {
                 error: error ? { code: error.code, message: error.message } : null
             }
         });
-    } catch (err: any) {
-        res.status(500).json({ status: 'error', message: 'Terjadi kesalahan pada server', detail: err.message });
+    } catch (err: unknown) {
+        const errorMessage = err instanceof Error ? err.message : 'Unknown error';
+        res.status(500).json({ status: 'error', message: 'Terjadi kesalahan pada server', detail: errorMessage });
     }
 });
 

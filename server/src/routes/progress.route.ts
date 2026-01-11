@@ -6,7 +6,7 @@ const router: Router = Router();
 const now = () => new Date().toISOString();
 const today = () => now().split('T')[0];
 
-const upsertProgress = async (userId: string, data: Record<string, any>, isInsert: boolean) => {
+const upsertProgress = async (userId: string, data: Record<string, unknown>, isInsert: boolean) => {
     const timestamp = { updated_at: now(), ...(isInsert && { created_at: now() }) };
     return isInsert
         ? supabase.from('user_progress').insert({ user_id: userId, completed_lessons: [], completed_modules: [], ...data, ...timestamp }).select().single()
@@ -24,17 +24,20 @@ const updateXP = async (userId: string, amount: number) => {
     await supabase.from('users').update({ xp: (data?.xp || 0) + amount }).eq('id', userId);
 };
 
-router.get('/', authenticateToken, async (req: AuthRequest, res: Response) => {
+router.get('/', authenticateToken, async (req: AuthRequest, res: Response): Promise<void> => {
     try {
         const userId = req.user!.userId;
         const { data: progress, notFound, error } = await getProgress(userId);
 
-        if (notFound) return res.json({ success: true, data: { completed_lessons: [], completed_modules: [], current_path: null, current_module: null, current_lesson: null, xp: 0, streak: 0, badges: [] } });
+        if (notFound) {
+            res.json({ success: true, data: { completed_lessons: [], completed_modules: [], current_path: null, current_module: null, current_lesson: null, xp: 0, streak: 0, badges: [] } });
+            return;
+        }
         if (error) throw error;
 
         const { data: user } = await supabase.from('users').select('xp, streak, last_active_date').eq('id', userId).single();
 
-        let badgesData: any[] = [];
+        let badgesData: unknown[] = [];
         try {
             const { data: badges } = await supabase.from('user_badges').select('badge_id, badge_name, earned_at').eq('user_id', userId);
             badgesData = badges || [];
@@ -59,18 +62,22 @@ router.get('/', authenticateToken, async (req: AuthRequest, res: Response) => {
     }
 });
 
-router.post('/lesson', authenticateToken, async (req: AuthRequest, res: Response) => {
+router.post('/lesson', authenticateToken, async (req: AuthRequest, res: Response): Promise<void> => {
     try {
         const userId = req.user!.userId;
         const { lesson_key, xp_reward } = req.body;
 
-        if (!lesson_key) return res.status(400).json({ success: false, message: 'lesson_key is required' });
+        if (!lesson_key) {
+            res.status(400).json({ success: false, message: 'lesson_key is required' });
+            return;
+        }
 
         const { data: progress, notFound } = await getProgress(userId);
         const completedLessons: string[] = progress?.completed_lessons || [];
 
         if (completedLessons.includes(lesson_key)) {
-            return res.json({ success: true, message: 'Lesson already completed', data: { completed_lessons: completedLessons, xp_added: 0 } });
+            res.json({ success: true, message: 'Lesson already completed', data: { completed_lessons: completedLessons, xp_added: 0 } });
+            return;
         }
 
         completedLessons.push(lesson_key);
@@ -83,18 +90,22 @@ router.post('/lesson', authenticateToken, async (req: AuthRequest, res: Response
     }
 });
 
-router.post('/module', authenticateToken, async (req: AuthRequest, res: Response) => {
+router.post('/module', authenticateToken, async (req: AuthRequest, res: Response): Promise<void> => {
     try {
         const userId = req.user!.userId;
         const { module_key, xp_reward } = req.body;
 
-        if (!module_key) return res.status(400).json({ success: false, message: 'module_key is required' });
+        if (!module_key) {
+            res.status(400).json({ success: false, message: 'module_key is required' });
+            return;
+        }
 
         const { data: progress, notFound } = await getProgress(userId);
         const completedModules: string[] = progress?.completed_modules || [];
 
         if (completedModules.includes(module_key)) {
-            return res.json({ success: true, message: 'Module already completed', data: { completed_modules: completedModules, xp_added: 0 } });
+            res.json({ success: true, message: 'Module already completed', data: { completed_modules: completedModules, xp_added: 0 } });
+            return;
         }
 
         completedModules.push(module_key);
@@ -107,7 +118,7 @@ router.post('/module', authenticateToken, async (req: AuthRequest, res: Response
     }
 });
 
-router.put('/current', authenticateToken, async (req: AuthRequest, res: Response) => {
+router.put('/current', authenticateToken, async (req: AuthRequest, res: Response): Promise<void> => {
     try {
         const userId = req.user!.userId;
         const { current_path, current_module, current_lesson } = req.body;
@@ -122,13 +133,13 @@ router.put('/current', authenticateToken, async (req: AuthRequest, res: Response
     }
 });
 
-router.post('/sync', authenticateToken, async (req: AuthRequest, res: Response) => {
+router.post('/sync', authenticateToken, async (req: AuthRequest, res: Response): Promise<void> => {
     try {
         const userId = req.user!.userId;
         const { completed_lessons, completed_modules, current_path, current_module, current_lesson, xp, streak } = req.body;
 
         if (xp !== undefined || streak !== undefined) {
-            const updateData: Record<string, any> = { last_active_date: today() };
+            const updateData: Record<string, unknown> = { last_active_date: today() };
             if (xp !== undefined) updateData.xp = xp;
             if (streak !== undefined) updateData.streak = streak;
             await supabase.from('users').update(updateData).eq('id', userId);

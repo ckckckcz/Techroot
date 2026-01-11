@@ -1,14 +1,20 @@
-import { Router, Response } from 'express';
+import { Router, Request, Response } from 'express';
 import { env } from '../config/env';
 
 const router: Router = Router();
 
-router.post('/chat', async (req, res: Response) => {
+router.post('/chat', async (req: Request, res: Response): Promise<void> => {
     try {
         const { message, model } = req.body;
 
-        if (!message) return res.status(400).json({ success: false, message: 'Pesan tidak boleh kosong' });
-        if (!env.openRouterApiKey) return res.status(500).json({ success: false, message: 'API Key OpenRouter tidak dikonfigurasi' });
+        if (!message) {
+            res.status(400).json({ success: false, message: 'Pesan tidak boleh kosong' });
+            return;
+        }
+        if (!env.openRouterApiKey) {
+            res.status(500).json({ success: false, message: 'API Key OpenRouter tidak dikonfigurasi' });
+            return;
+        }
 
         const response = await fetch('https://openrouter.ai/api/v1/chat/completions', {
             method: 'POST',
@@ -27,12 +33,14 @@ router.post('/chat', async (req, res: Response) => {
         const data = await response.json();
 
         if (!response.ok) {
-            return res.status(response.status).json({ success: false, message: 'Terjadi kesalahan pada AI service', error: data.error?.message });
+            res.status(response.status).json({ success: false, message: 'Terjadi kesalahan pada AI service', error: data.error?.message });
+            return;
         }
 
         res.json({ success: true, data: { reply: data.choices[0].message.content, model: data.model } });
-    } catch (error: any) {
-        res.status(500).json({ success: false, message: 'Terjadi kesalahan server', error: error.message });
+    } catch (error: unknown) {
+        const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+        res.status(500).json({ success: false, message: 'Terjadi kesalahan server', error: errorMessage });
     }
 });
 
