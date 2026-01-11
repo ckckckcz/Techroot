@@ -1,13 +1,19 @@
-import { Request, Response, NextFunction } from 'express';
+import express from 'express';
 import jwt from 'jsonwebtoken';
 import { env } from '../config/env';
+import type { ExpressRequest, ExpressResponse, ExpressNextFunction } from '../types/express.d';
 
-export interface AuthRequest extends Request {
-    user?: { userId: string; email: string };
+export interface AuthRequest extends ExpressRequest {
+    user: { userId: string; email: string };
 }
 
-export const authenticateToken = (req: AuthRequest, res: Response, next: NextFunction): void => {
-    const token = req.headers?.authorization?.split(' ')[1];
+export const authenticateToken = (
+    req: ExpressRequest,
+    res: ExpressResponse,
+    next: ExpressNextFunction
+): void => {
+    const authHeader = req.headers?.authorization;
+    const token = authHeader?.split(' ')[1];
 
     if (!token) {
         res.status(401).json({ success: false, message: 'Token required' });
@@ -19,7 +25,7 @@ export const authenticateToken = (req: AuthRequest, res: Response, next: NextFun
             res.status(403).json({ success: false, message: 'Invalid token' });
             return;
         }
-        req.user = decoded as AuthRequest['user'];
+        (req as AuthRequest).user = decoded as AuthRequest['user'];
         next();
     });
 };

@@ -1,8 +1,9 @@
-import { Router, Response } from 'express';
+import express, { Router } from 'express';
 import { supabase } from '../lib/supabase';
 import { authenticateToken, AuthRequest } from '../middleware/auth';
+import type { ExpressResponse } from '../types/express.d';
 
-const router: Router = Router();
+const router: Router = express.Router();
 const now = () => new Date().toISOString();
 const today = () => now().split('T')[0];
 
@@ -24,13 +25,15 @@ const updateXP = async (userId: string, amount: number) => {
     await supabase.from('users').update({ xp: (data?.xp || 0) + amount }).eq('id', userId);
 };
 
-router.get('/', authenticateToken, async (req: AuthRequest, res: Response): Promise<void> => {
+router.get('/', authenticateToken as express.RequestHandler, async (req, res): Promise<void> => {
+    const typedReq = req as unknown as AuthRequest;
+    const typedRes = res as unknown as ExpressResponse;
     try {
-        const userId = req.user!.userId;
+        const userId = typedReq.user.userId;
         const { data: progress, notFound, error } = await getProgress(userId);
 
         if (notFound) {
-            res.json({ success: true, data: { completed_lessons: [], completed_modules: [], current_path: null, current_module: null, current_lesson: null, xp: 0, streak: 0, badges: [] } });
+            typedRes.json({ success: true, data: { completed_lessons: [], completed_modules: [], current_path: null, current_module: null, current_lesson: null, xp: 0, streak: 0, badges: [] } });
             return;
         }
         if (error) throw error;
@@ -43,7 +46,7 @@ router.get('/', authenticateToken, async (req: AuthRequest, res: Response): Prom
             badgesData = badges || [];
         } catch { /* badges table might not exist */ }
 
-        res.json({
+        typedRes.json({
             success: true,
             data: {
                 completed_lessons: progress?.completed_lessons || [],
@@ -58,25 +61,27 @@ router.get('/', authenticateToken, async (req: AuthRequest, res: Response): Prom
             }
         });
     } catch (error) {
-        res.status(500).json({ success: false, message: 'Failed to get progress', error: String(error) });
+        typedRes.status(500).json({ success: false, message: 'Failed to get progress', error: String(error) });
     }
 });
 
-router.post('/lesson', authenticateToken, async (req: AuthRequest, res: Response): Promise<void> => {
+router.post('/lesson', authenticateToken as express.RequestHandler, async (req, res): Promise<void> => {
+    const typedReq = req as unknown as AuthRequest;
+    const typedRes = res as unknown as ExpressResponse;
     try {
-        const userId = req.user!.userId;
-        const { lesson_key, xp_reward } = req.body;
+        const userId = typedReq.user.userId;
+        const { lesson_key, xp_reward } = typedReq.body as { lesson_key?: string; xp_reward?: number };
 
         if (!lesson_key) {
-            res.status(400).json({ success: false, message: 'lesson_key is required' });
+            typedRes.status(400).json({ success: false, message: 'lesson_key is required' });
             return;
         }
 
         const { data: progress, notFound } = await getProgress(userId);
-        const completedLessons: string[] = progress?.completed_lessons || [];
+        const completedLessons: string[] = (progress?.completed_lessons as string[]) || [];
 
         if (completedLessons.includes(lesson_key)) {
-            res.json({ success: true, message: 'Lesson already completed', data: { completed_lessons: completedLessons, xp_added: 0 } });
+            typedRes.json({ success: true, message: 'Lesson already completed', data: { completed_lessons: completedLessons, xp_added: 0 } });
             return;
         }
 
@@ -84,27 +89,29 @@ router.post('/lesson', authenticateToken, async (req: AuthRequest, res: Response
         await upsertProgress(userId, { completed_lessons: completedLessons }, notFound);
         await updateXP(userId, xp_reward || 0);
 
-        res.json({ success: true, message: 'Lesson completed', data: { completed_lessons: completedLessons, xp_added: xp_reward || 0 } });
+        typedRes.json({ success: true, message: 'Lesson completed', data: { completed_lessons: completedLessons, xp_added: xp_reward || 0 } });
     } catch (error) {
-        res.status(500).json({ success: false, message: 'Failed to complete lesson', error: String(error) });
+        typedRes.status(500).json({ success: false, message: 'Failed to complete lesson', error: String(error) });
     }
 });
 
-router.post('/module', authenticateToken, async (req: AuthRequest, res: Response): Promise<void> => {
+router.post('/module', authenticateToken as express.RequestHandler, async (req, res): Promise<void> => {
+    const typedReq = req as unknown as AuthRequest;
+    const typedRes = res as unknown as ExpressResponse;
     try {
-        const userId = req.user!.userId;
-        const { module_key, xp_reward } = req.body;
+        const userId = typedReq.user.userId;
+        const { module_key, xp_reward } = typedReq.body as { module_key?: string; xp_reward?: number };
 
         if (!module_key) {
-            res.status(400).json({ success: false, message: 'module_key is required' });
+            typedRes.status(400).json({ success: false, message: 'module_key is required' });
             return;
         }
 
         const { data: progress, notFound } = await getProgress(userId);
-        const completedModules: string[] = progress?.completed_modules || [];
+        const completedModules: string[] = (progress?.completed_modules as string[]) || [];
 
         if (completedModules.includes(module_key)) {
-            res.json({ success: true, message: 'Module already completed', data: { completed_modules: completedModules, xp_added: 0 } });
+            typedRes.json({ success: true, message: 'Module already completed', data: { completed_modules: completedModules, xp_added: 0 } });
             return;
         }
 
@@ -112,31 +119,43 @@ router.post('/module', authenticateToken, async (req: AuthRequest, res: Response
         await upsertProgress(userId, { completed_modules: completedModules }, notFound);
         await updateXP(userId, xp_reward || 0);
 
-        res.json({ success: true, message: 'Module completed', data: { completed_modules: completedModules, xp_added: xp_reward || 0 } });
+        typedRes.json({ success: true, message: 'Module completed', data: { completed_modules: completedModules, xp_added: xp_reward || 0 } });
     } catch (error) {
-        res.status(500).json({ success: false, message: 'Failed to complete module', error: String(error) });
+        typedRes.status(500).json({ success: false, message: 'Failed to complete module', error: String(error) });
     }
 });
 
-router.put('/current', authenticateToken, async (req: AuthRequest, res: Response): Promise<void> => {
+router.put('/current', authenticateToken as express.RequestHandler, async (req, res): Promise<void> => {
+    const typedReq = req as unknown as AuthRequest;
+    const typedRes = res as unknown as ExpressResponse;
     try {
-        const userId = req.user!.userId;
-        const { current_path, current_module, current_lesson } = req.body;
+        const userId = typedReq.user.userId;
+        const { current_path, current_module, current_lesson } = typedReq.body as { current_path?: string; current_module?: string; current_lesson?: string };
         const { notFound } = await getProgress(userId);
 
         const { data, error } = await upsertProgress(userId, { current_path: current_path || null, current_module: current_module || null, current_lesson: current_lesson || null }, notFound);
         if (error) throw error;
 
-        res.json({ success: true, message: notFound ? 'Current position created' : 'Current position updated', data });
+        typedRes.json({ success: true, message: notFound ? 'Current position created' : 'Current position updated', data });
     } catch (error) {
-        res.status(500).json({ success: false, message: 'Failed to update current position', error: String(error) });
+        typedRes.status(500).json({ success: false, message: 'Failed to update current position', error: String(error) });
     }
 });
 
-router.post('/sync', authenticateToken, async (req: AuthRequest, res: Response): Promise<void> => {
+router.post('/sync', authenticateToken as express.RequestHandler, async (req, res): Promise<void> => {
+    const typedReq = req as unknown as AuthRequest;
+    const typedRes = res as unknown as ExpressResponse;
     try {
-        const userId = req.user!.userId;
-        const { completed_lessons, completed_modules, current_path, current_module, current_lesson, xp, streak } = req.body;
+        const userId = typedReq.user.userId;
+        const { completed_lessons, completed_modules, current_path, current_module, current_lesson, xp, streak } = typedReq.body as {
+            completed_lessons?: string[];
+            completed_modules?: string[];
+            current_path?: string;
+            current_module?: string;
+            current_lesson?: string;
+            xp?: number;
+            streak?: number;
+        };
 
         if (xp !== undefined || streak !== undefined) {
             const updateData: Record<string, unknown> = { last_active_date: today() };
@@ -155,9 +174,9 @@ router.post('/sync', authenticateToken, async (req: AuthRequest, res: Response):
         }, notFound);
 
         if (error) throw error;
-        res.json({ success: true, message: 'Progress synced successfully', data });
+        typedRes.json({ success: true, message: 'Progress synced successfully', data });
     } catch (error) {
-        res.status(500).json({ success: false, message: 'Failed to sync progress', error: String(error) });
+        typedRes.status(500).json({ success: false, message: 'Failed to sync progress', error: String(error) });
     }
 });
 

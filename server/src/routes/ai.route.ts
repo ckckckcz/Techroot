@@ -1,11 +1,12 @@
-import { Router, Request, Response } from 'express';
+import express, { Router } from 'express';
 import { env } from '../config/env';
+import type { ExpressRequest, ExpressResponse } from '../types/express.d';
 
-const router: Router = Router();
+const router: Router = express.Router();
 
-router.post('/chat', async (req: Request, res: Response): Promise<void> => {
+router.post('/chat', async (req: ExpressRequest, res: ExpressResponse): Promise<void> => {
     try {
-        const { message, model } = req.body;
+        const { message, model } = req.body as { message?: string; model?: string };
 
         if (!message) {
             res.status(400).json({ success: false, message: 'Pesan tidak boleh kosong' });
@@ -30,14 +31,14 @@ router.post('/chat', async (req: Request, res: Response): Promise<void> => {
             })
         });
 
-        const data = await response.json();
+        const data = await response.json() as { choices?: { message: { content: string } }[]; model?: string; error?: { message: string } };
 
         if (!response.ok) {
             res.status(response.status).json({ success: false, message: 'Terjadi kesalahan pada AI service', error: data.error?.message });
             return;
         }
 
-        res.json({ success: true, data: { reply: data.choices[0].message.content, model: data.model } });
+        res.json({ success: true, data: { reply: data.choices?.[0]?.message?.content, model: data.model } });
     } catch (error: unknown) {
         const errorMessage = error instanceof Error ? error.message : 'Unknown error';
         res.status(500).json({ success: false, message: 'Terjadi kesalahan server', error: errorMessage });
